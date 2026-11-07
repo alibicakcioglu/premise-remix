@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TELGRAF · Feedback × Temporality</title>
+  <meta name="description" content="Gecikmeli emirler ve gecikmeli raporlarla cepheyi 60 saniye tut. NMED 3203 premise remix.">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <!-- BAŞLIK + TEK SATIR TALİMAT -->
+  <header class="top">
+    <div class="brand">
+      <h1>TELGRAF</h1>
+      <p class="sub">FEEDBACK × TEMPORALITY</p>
+    </div>
+    <p class="instruction">
+      Cepheyi 60 saniye tut. Sektöre tıkla ya da <kbd>1</kbd>–<kbd>5</kbd> ile takviye gönder,
+      <kbd>Q</kbd>/<kbd>E</kbd> ile keşif yap. <strong>Gördüğün her şey birkaç saniye eski.</strong>
+    </p>
+  </header>
+
+  <!-- DURUM ÇUBUĞU -->
+  <section class="hud" aria-label="Durum">
+    <div class="hud-item"><span class="label">SÜRE</span><span id="time" class="value">60.0</span></div>
+    <div class="hud-item"><span class="label">MOD</span><span id="mode" class="value">TELGRAF</span></div>
+    <div class="hud-item"><span class="label">TELGRAF HATTI</span><span id="lines" class="value">0 / 2</span></div>
+    <div class="hud-item report"><span class="label">RAPOR</span><span id="reportAge" class="value">3.0 sn eski</span></div>
+  </section>
+
+  <p id="notice" class="notice" role="status" aria-live="polite"></p>
+
+  <main class="layout">
+    <!-- CEPHE: sektörler JS ile oluşturuluyor -->
+    <section class="front" id="front" aria-label="Cephe hattı"></section>
+
+    <aside class="side">
+      <div class="panel">
+        <h2>KEŞİF</h2>
+        <div class="btn-row">
+          <button id="fastScout" type="button" class="btn">
+            <span><kbd>Q</kbd> Hızlı keşif</span>
+            <small id="fastInfo"></small>
+          </button>
+          <button id="deepScout" type="button" class="btn">
+            <span><kbd>E</kbd> Derin keşif</span>
+            <small id="deepInfo"></small>
+          </button>
+        </div>
+        <p id="scoutResult" class="scout-result" aria-live="polite">Henüz keşif yok. Düşmanın bir sonraki hedefini öğrenmek için keşif yap.</p>
+      </div>
+
+      <div class="panel">
+        <h2>TELGRAF KAYDI</h2>
+        <ol id="log" class="log"></ol>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ALT KONTROLLER -->
+  <section class="controls" aria-label="Kontroller">
+    <button id="modeBtn" type="button" class="btn"><kbd>M</kbd> Mod: Telgraf / Anlık</button>
+    <button id="restartBtn" type="button" class="btn"><kbd>R</kbd> Yeniden başla</button>
+    <button id="settingsBtn" type="button" class="btn" aria-expanded="false" aria-controls="settings"><kbd>S</kbd> Ayarlar</button>
+  </section>
+
+  <!-- AYARLAR PANELİ: kaydırıcılar JS ile KNOBS'tan oluşturuluyor -->
+  <section id="settings" class="settings panel" hidden aria-label="Ayarlar">
+    <div class="settings-head">
+      <h2>AYARLAR · gecikmeler ve kurallar</h2>
+      <button id="resetSettings" type="button" class="btn small">Varsayılana dön</button>
+    </div>
+    <p class="hint">Değişiklikler anında uygulanır. Yolda olan emirler eski değerle varır.</p>
+    <div id="settingsList" class="settings-list"></div>
+  </section>
+
+  <!-- TUR SONU EKRANI -->
+  <div id="overlay" class="overlay" hidden>
+    <div class="overlay-box panel" role="dialog" aria-modal="true" aria-labelledby="overTitle">
+      <h2 id="overTitle">TUR BİTTİ</h2>
+      <p id="overReport"></p>
+      <p id="overTruth" class="truth"></p>
+      <p id="overNote" class="hint"></p>
+      <button id="overRestart" type="button" class="btn"><kbd>R</kbd> Yeniden başla</button>
+    </div>
+  </div>
+
+  <footer>
+    NMED 3203 · Interactive Media Applications Lab premise remix ·
+    Premise 03 Feedback × Premise 04 Temporality ·
+    Tasarım ve kod: Ali Eren Bıçakçıoğlu (AI destekli, bkz. README) ·
+    Okumalar: Jota vd. (2013), Hattie &amp; Timperley (2007)
+  </footer>
+
+  <script src="./script.js"></script>
+</body>
+</html>
