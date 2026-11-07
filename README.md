@@ -1,32 +1,44 @@
-# REHBER (prototip)
+# The Guide
 
 **Premise 01 Agency × Premise 02 Reciprocity** · NMED 3203 premise remix
 
-Sana yolu gösteren birine güvenebilir misin? Her turda bir rehber sana bir kapı gösteriyor, ama her zaman doğruyu söylemiyor. Kapıyı her zaman sen seçiyorsun. Rehber senin kararlarını hatırlıyor ve bir sonraki turda seni nasıl yönlendireceğini değiştiriyor.
+You are lost in a clearing at night. A fox offers to show you the way out. It knows which gate is the exit, but it also has a gate of its own. You always choose the gate (Agency). The fox reads every move you make as a reply and changes how it guides you in the next room (Reciprocity).
 
-**Canlı link:** https://alibicakcioglu.github.io/premise-remix/
+**Live link:** https://alibicakcioglu.github.io/premise-remix/
 
-## Nasıl kullanılır
+## How to play
 
-- Hareket: ok tuşları / WASD, ya da odada bir yere tıkla
-- Kapıya git: `1` `2` `3` tuşları, kapıya tıklamak ya da alttaki "Kapı" butonları
-- Yeniden başla: `R`
+| Action | Pointer / touch | Keyboard |
+|---|---|---|
+| Walk | click on the ground | arrows / WASD |
+| Go to a gate | click a gate | `1` `2` `3` |
+| Ask “are you sure?” | click the fox | `Q` |
+| Inspect a gate | stand still in front of it | stand still in front of it |
+| Choose | walk through a gate | walk through a gate |
+| Code / notes | CODE / NOTES tabs | `C` / `Shift+N` |
 
-## Premise'ler kodda nerede
+Get through 4 gates before your lantern goes out (3 wrong gates).
 
-- **Agency:** `script.js` → `choose()`. Kapıyı her zaman oyuncu seçer, rehber sadece önerir.
-- **Reciprocity:** `script.js` → `adapt()`. Uyarsan rehber daha çok yalan söyler (`LIE_GROWTH_IF_OBEYED`). Yalanını yakalarsan yalanlarını daha iyi saklar (`TELL_DECAY_IF_CAUGHT`).
-- **İpucu:** Yalan söylerken rehber gösterdiği kapının dibinde durmaz ve gözleri gerçek kapıya kayar (`guideStandSpot()`, `guideLookTarget()`, `TELL_STRENGTH`).
-- Tüm sayılar `script.js` dosyasının en üstündeki `KNOBS` nesnesinde, tuşlar `INPUT_MAP` içinde, replikler `LINES` içinde.
+## Where the premises live in the code (`script.js`)
 
-## Kaynaklar ve krediler
+- **Agency:** `ask()`, the inspection block in `update()`, and `choose()`. The player can follow, question, investigate, or defy; the gate is always the player's choice.
+- **Reciprocity:** `choose()` reads the player's move as a reply and sets the fox's next `mood` (confident / insistent / hurt / nervous). `newRoom()` turns that mood into a lie probability (`DESIGN.lie…`). `ask()` and `reactToInspect()` make the fox answer within a room.
+- Body language: `foxSpot()` and `animateHead()`, scaled by `DESIGN.tell`.
+- All numbers are in `design` / `knobs` at the top of `script.js` and can be changed live in the **CODE** tab. The fox's lines are in `LINES`.
 
-- NMED 3203 Interactive Media Applications Lab: https://mertseven.com/ima/lab/
-- Wardrip-Fruin, N., Mateas, M., Dow, S. & Sali, S. (2009). Agency Reconsidered.
-- Dubberly, H., Haque, U. & Pangaro, P. (2009). What is interaction? Are there different types?
+## Credits
 
-## AI notu
+- Built on **IMA Lab experiment 02 · Eye Field** by Mert Seven (NMED 3203): `engine.js`, `shell.js`, `runner.js`, `style.css`, the Owl Forest place and the Fox and Traveler characters. https://mertseven.com/ima/lab/
+- three.js (MIT) and fonts (OFL) as listed in `licenses/`.
+- Changes for this project: new `script.js` (game rules, gates, fox behaviour), `index.html` title, one line in `shell.js` (custom subtitle).
 
-<!-- Kendi cümlelerinle düzenle. -->
-- Claude (Anthropic) fikri küçültmek ve kodun ilk sürümünü yazmak için kullanıldı. ChatGPT ilk fikir geliştirme aşamasında kullanıldı.
-- Reddettiğim / değiştirdiğim bir örnek: _[Kendi örneğini yaz.]_
+## Readings
+
+- Wardrip-Fruin, N., Mateas, M., Dow, S. & Sali, S. (2009). Agency Reconsidered. *DiGRA 2009*.
+- Dubberly, H., Haque, U. & Pangaro, P. (2009). What is interaction? Are there different types? *interactions*, 16(1).
+
+## AI note
+
+<!-- Edit in your own words. -->
+- Claude (Anthropic) was used to narrow the idea and write `script.js`. ChatGPT was used in an earlier brainstorming stage.
+- One thing I rejected or changed: _[write your own example]_

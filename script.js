@@ -1,535 +1,353 @@
-'use strict';
+// THE GUIDE · Agency × Reciprocity
+// Remix of IMA Lab experiment 02 · Eye Field (engine, shell, place and characters by the lab).
+// Bir tilki seni açıklıktan çıkarmaya söz veriyor. Kapıyı hep sen seçersin (Agency);
+// tilki her hareketini bir cevap olarak okur ve bir sonraki odada ona göre davranır (Reciprocity).
+// Girdi: tıkla / ok tuşları / 1-3 / Q · Kural: ruh hali → yalan olasılığı · Durum: mood, mem · Çıktı: işaret, ısrar, küsme
+window.OYUNLAR = window.OYUNLAR || {};
 
-/* =========================================================
-   REHBER · Agency × Reciprocity
-   ---------------------------------------------------------
-   AGENCY      → Oyuncu rehbere uyabilir ya da karşı gelebilir.
-                 Kapıyı her zaman oyuncu seçer.  (bkz. choose)
-   RECIPROCITY → Rehber oyuncunun kararlarını hatırlar ve bir
-                 sonraki turda yönlendirme biçimini değiştirir.
-                 (bkz. adapt)
-   ========================================================= */
-
-
-/* ---------------------------------------------------------
-   1) KNOBS · tüm kurallar ve sayılar burada
-   --------------------------------------------------------- */
-const KNOBS = {
-  ROUNDS: 6,                  // kaç tur
-  DOORS: 3,                   // kapı sayısı
-
-  LIE_CHANCE: 0.35,           // rehberin başlangıçtaki yalan söyleme olasılığı
-  LIE_GROWTH_IF_OBEYED: 0.15, // sen uydukça yalan olasılığı ne kadar artar
-  LIE_DROP_IF_CAUGHT: 0.10,   // yalanı yakalanınca ne kadar azalır
-  LIE_MAX: 0.9,
-
-  TELL_STRENGTH: 1,           // yalan söylerken beden dilinin ne kadar belli olduğu (0 = hiç)
-  TELL_DECAY_IF_CAUGHT: 0.25, // yakalandıkça yalanlarını ne kadar iyi saklar
-  TELL_MIN: 0.25,
-
-  GUIDE_SPEED: 140,           // rehberin yürüme hızı (piksel/sn)
-  PLAYER_SPEED: 230,          // senin hızın (piksel/sn)
-  GUIDE_WAIT: 700,            // tur başında rehberin yola çıkmadan beklediği süre (ms)
-  PATIENCE: 4000,             // rehber kaç ms sonra sabırsızlanır
-  RESULT_TIME: 2200           // tur sonucunun ekranda kalma süresi (ms)
-};
-
-/* Tuşlar. "Girişleri değiştir" isteği için burası. */
-const INPUT_MAP = {
-  up: ['arrowup', 'w'],
-  down: ['arrowdown', 's'],
-  left: ['arrowleft', 'a'],
-  right: ['arrowright', 'd'],
-  doors: ['1', '2', '3', '4', '5'],
-  restart: 'r'
-};
-
-/* Rehberin replikleri */
+/* Tilkinin replikleri: dili değiştirmek için yalnız burayı düzenle */
 const LINES = {
-  intro: 'Buradan çıkmak istiyorsan benimle iyi geçinmelisin.',
-  point: 'Bu kapı. Bana güven.',
-  pointAfterCaught: 'Bu sefer gerçekten bu. Söz veriyorum.',
-  pointAfterObeyStreak: 'Beni dinlemeye devam et. Bu kapı.',
-  pointAfterWrongDistrust: 'Bir kez daha güvenmeyecek misin? Bu kapı.',
-  impatient: 'Ne bekliyorsun? Zaman daralıyor.',
-  obeyedTruth: 'Gördün mü? Birlikte iyiyiz.',
-  obeyedLie: 'Hmm… kapılar yer değiştirmiş olmalı.',
-  defiedLieRight: '…Fark ettin demek.',
-  defiedLieWrong: 'Beni dinlemedin, ama doğruyu da bulamadın.',
-  defiedTruth: 'Bana güvenmedin. Yazık.',
-  ignoredRight: 'Beni beklemedin bile.',
-  ignoredWrong: 'Acele ettin. Beni dinlemeliydin.'
+  intro: 'Want out? Stay on my good side.',
+  point: 'This one. Trust me.',
+  pointConfident: 'This one, as always.',
+  pointInsistent: 'THIS one. Listen to me this time.',
+  pointNervous: 'I think… this one.',
+  hurt: 'Find it yourself.',
+  impatient: 'Come on. We don’t have all night.',
+  sureTruth: 'Yes. I’m sure.',
+  sureLie: 'Of course I’m sure.',
+  crack: '…Actually. That one.',
+  annoyed: 'Again? You don’t trust me at all.',
+  watchWant: 'Good. That’s the one.',
+  blockTruth: 'Not that one! Waste of time.',
+  obeyedTruth: 'See? We make a good team.',
+  obeyedLie: 'Hm. The doors must have moved.',
+  caught: '…So you noticed.',
+  defiedTruth: 'You didn’t trust me. Your loss.',
+  alone: 'Lucky.',
+  aloneWrong: 'Told you. You need me.'
 };
 
+window.OYUNLAR['02'] = {
+  key: '02', title: 'The Guide', premise: 'Agency × Reciprocity', sub: 'premise 01 × 02 · agency × reciprocity',
+  premiseText: 'Your actions change the system, and every action expects a response.',
+  promise: 'Participation can be designed. Design the dialogue, not the message.',
+  source: 'IMA Lab experiment 02 · Eye Field (engine, place and characters)',
+  caption: 'The fox says it knows the way out.',
+  hint: 'click = walk · click the fox or Q = “are you sure?” · stand still at a gate = inspect · walk through a gate = choose · arrows / WASD = walk · 1 2 3 = go to gate · C code',
+  anat: ['walk · ask · inspect', 'reply → mood', 'mood · memory', 'points · lies · sulks'], hot: 2,
+  hud: [['GATES', 'hGate'], ['LIGHT', 'hLight'], ['FOX', 'hMood', 'ghosts'], ['CAUGHT', 'hCaught']],
+  design: {
+    lieConfident: 0.85, lieCalm: 0.5, lieNervous: 0.2, lieInsistent: 0.95,
+    tell: 1, crackChance: 0.35, asksBeforeAnnoyed: 2, inspectTime: 1500, patience: 6000,
+    walkSpeed: 1.1, foxSpeed: 1.8, gates: 4, lights: 3
+  },
+  knobs: [
+    { key: 'lieConfident', step: 0.05, min: 0, max: 1, note: 'live · after you obey' },
+    { key: 'lieCalm', step: 0.05, min: 0, max: 1, note: 'live · first room' },
+    { key: 'lieNervous', step: 0.05, min: 0, max: 1, note: 'live · after it sulked' },
+    { key: 'lieInsistent', step: 0.05, min: 0, max: 1, note: 'live · after you doubted the truth' },
+    { key: 'tell', step: 0.25, min: 0, max: 2, note: 'live · body language, 0 = none' },
+    { key: 'crackChance', step: 0.05, min: 0, max: 1, note: 'live · a lie cracks when asked' },
+    { key: 'asksBeforeAnnoyed', step: 1, min: 1, max: 9, note: 'live' },
+    { key: 'inspectTime', step: 250, min: 250, max: 6000, note: 'ms · live' },
+    { key: 'patience', step: 500, min: 1000, max: 20000, note: 'ms · live' },
+    { key: 'walkSpeed', step: 0.1, min: 0.3, max: 3, note: 'live · you' },
+    { key: 'foxSpeed', step: 0.1, min: 0.3, max: 4, note: 'live · the fox' },
+    { key: 'gates', step: 1, min: 1, max: 9, note: 'on restart' },
+    { key: 'lights', step: 1, min: 1, max: 9, note: 'on restart' }],
+  code: [
+    '<span class="c">// 3) RULE: the fox reads every move as a reply</span>',
+    '<span class="k">if</span> (obeyed) mood = <span class="s">\'confident\'</span>;   <span class="c">// it relaxes, lies more</span>',
+    '<span class="k">else if</span> (caughtLie) mood = <span class="s">\'hurt\'</span>;  <span class="c">// it sulks, no guiding</span>',
+    '<span class="k">else if</span> (doubtedTruth) mood = <span class="s">\'insistent\'</span>;',
+    'lie = wantsOwnGate &amp;&amp; random() &lt; DESIGN[<span class="s">\'lie\'</span> + mood];'],
+  tasks: [
+    'Set <b>tell</b> to 0. Can you still read the fox? What do you rely on instead?',
+    'Set <b>lieConfident</b> to 0. Does obeying still feel risky?',
+    'Add a fifth mood, <b>grateful</b>, for when you follow it after catching a lie.'],
+  question: 'When did a system you trusted steer you toward what it wanted?',
+  overlay: { title: 'The Guide', text: 'You are lost in a clearing at night. A fox offers to show you the way out. It knows which gate is the exit. Does it want you to find it?', cta: 'CLICK TO ENTER' },
+  view: { at: [0, 0.35, 0.1], zoom: 2.8, pitch: 1.08 },
 
-/* ---------------------------------------------------------
-   2) SAHNE
-   --------------------------------------------------------- */
-const canvas = document.getElementById('room');
-const ctx = canvas.getContext('2d');
-const W = canvas.width;
-const H = canvas.height;
-const WALL_Y = 70;      // kapıların bulunduğu üst duvar
-const DOOR_W = 76;
+  make(ctx) {
+    const { THREE, D, group } = ctx;
+    const Y = 0.08, R = 2.05;                       // zemin yüksekliği, yürünebilir yarıçap
+    const SYMBOLS = ['☾', '✶', '◆'], WANT = '☾';    // tilkinin kendi kapısı hep ☾
+    const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+    const V = (x, z, y = Y) => new THREE.Vector3(x, y, z);
 
-function doorX(i) {
-  return (W * (i + 1)) / (KNOBS.DOORS + 1);
-}
+    // ---- kapılar: açıklığın arkasında yay üzerinde ----
+    const gates = [-0.62, 0, 0.62].map((ang, i) => {
+      const x = Math.sin(ang) * 1.45, z = -Math.cos(ang) * 1.45;
+      const g = new THREE.Group(); g.position.set(x, Y, z); g.rotation.y = Math.atan2(-x, -z) + Math.PI;
+      g.add(ctx.mesh(new THREE.BoxGeometry(0.07, 0.62, 0.07), ctx.toon('wood'), -0.24, 0.31, 0));
+      g.add(ctx.mesh(new THREE.BoxGeometry(0.07, 0.62, 0.07), ctx.toon('wood'), 0.24, 0.31, 0));
+      g.add(ctx.mesh(new THREE.BoxGeometry(0.6, 0.08, 0.09), ctx.toon('ink'), 0, 0.64, 0));
+      const panel = ctx.mesh(new THREE.BoxGeometry(0.41, 0.56, 0.02), ctx.toon('ink'), 0, 0.29, -0.02);
+      g.add(panel); group.add(g);
+      const toCenter = Math.hypot(x, z);
+      return { i, x, z, g, panel, front: V(x - (x / toCenter) * 0.38, z - (z / toCenter) * 0.38), symbol: '' };
+    });
 
+    // ---- karakterler ----
+    const traveler = ctx.char('char.traveler'), you = traveler.root;
+    you.scale.setScalar(0.7); group.add(you);
+    const lantern = new THREE.Group();
+    lantern.add(ctx.mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.5, 5), ctx.toon('ink'), 0, 0.25, 0));
+    lantern.add(ctx.mesh(new THREE.BoxGeometry(0.14, 0.17, 0.14), ctx.flat('warm'), 0, 0.55, 0));
+    lantern.scale.setScalar(0.75); lantern.position.set(0, -0.32, 0); traveler.held.add(lantern);
+    const light = new THREE.PointLight(0xffd890, 0, 3.2, 1.3); light.position.y = 0.6; lantern.add(light);
 
-/* ---------------------------------------------------------
-   3) DURUM
-   --------------------------------------------------------- */
-let game;
+    const foxC = ctx.char('char.fox'), fox = foxC.root;
+    fox.scale.setScalar(0.75); group.add(fox);
 
-function newGame() {
-  game = {
-    round: 0,
-    score: 0,
-    lieChance: KNOBS.LIE_CHANCE,   // rehberin hafızasıyla değişir
-    tell: KNOBS.TELL_STRENGTH,      // rehberin hafızasıyla değişir
-    mem: { obeyed: 0, defied: 0, obeyStreak: 0, caught: 0, lies: 0, last: null },
-    player: { x: W / 2, y: H - 60 },
-    guide: { x: W / 2 + 60, y: H - 60, tx: W / 2 + 60, ty: H - 60, look: null },
-    moveTarget: null,
-    over: false
-  };
-  document.getElementById('end').hidden = true;
-  startRound();
-}
+    // ---- durum ----
+    let S;                       // oyun
+    let r;                       // oda (tur)
+    let simT = 0;
+    const keys = new Set();
 
-function startRound() {
-  const r = {
-    phase: 'enter',                 // enter → point → result
-    startedAt: performance.now(),
-    pointedAt: 0,
-    truth: Math.floor(Math.random() * KNOBS.DOORS),
-    lied: false,
-    pointed: null,
-    chosen: null,
-    impatient: false,
-    speech: game.round === 0 ? LINES.intro : '',
-    resultAt: 0,
-    resultText: ''
-  };
-  r.lied = Math.random() < game.lieChance;
-  if (r.lied) {
-    const others = [...Array(KNOBS.DOORS).keys()].filter(i => i !== r.truth);
-    r.pointedDoor = others[Math.floor(Math.random() * others.length)];
-  } else {
-    r.pointedDoor = r.truth;
-  }
-  game.r = r;
-
-  // Herkes odanın altına döner
-  game.player.x = W / 2;
-  game.player.y = H - 60;
-  game.guide.x = W / 2 + 60;
-  game.guide.y = H - 60;
-  game.moveTarget = null;
-
-  say(r.speech);
-  updateHud();
-}
-
-
-/* ---------------------------------------------------------
-   4) KURALLAR
-   --------------------------------------------------------- */
-
-/* Rehber nerede durur? Doğru söylüyorsa kapının dibinde.
-   Yalan söylüyorsa gösterdiği kapıdan biraz uzakta ve gerçek
-   kapıya doğru kaymış durur. TELL ne kadar büyükse o kadar belli. */
-function guideStandSpot() {
-  const r = game.r;
-  const dx = doorX(r.pointedDoor);
-  if (!r.lied) return { x: dx, y: WALL_Y + 55 };
-  const dir = Math.sign(doorX(r.truth) - dx);
-  return {
-    x: dx + dir * game.tell * 45,
-    y: WALL_Y + 55 + game.tell * 55
-  };
-}
-
-/* Rehber nereye bakar? Yalan söylerken arada bir gerçek kapıya
-   kaçamak bakış atar. TELL büyüdükçe bakış uzar. */
-function guideLookTarget(t) {
-  const r = game.r;
-  const pointed = { x: doorX(r.pointedDoor), y: WALL_Y };
-  if (r.phase !== 'point') return game.player;
-
-  const cycle = (t - r.pointedAt) % 1700;
-  if (r.lied && game.tell > 0) {
-    const flick = Math.min(1000, 100 + game.tell * 400);
-    return cycle < flick ? { x: doorX(r.truth), y: WALL_Y } : pointed;
-  }
-  return cycle < 1200 ? pointed : game.player; // dürüstken sana bakar
-}
-
-/* AGENCY · kapıyı her zaman oyuncu seçer */
-function choose(door) {
-  const r = game.r;
-  if (r.phase === 'result' || game.over) return;
-
-  r.chosen = door;
-  r.phase = 'result';
-  r.resultAt = performance.now();
-  const correct = door === r.truth;
-  if (correct) game.score++;
-
-  r.resultText = adapt(r, correct);
-  say(r.resultText + ' ' + (correct ? 'Doğru kapı.' : 'Yanlış kapı.') +
-      ' Rehber bu turda ' + (r.lied ? 'yalan söyledi.' : 'doğruyu söyledi.'));
-  updateHud();
-}
-
-/* RECIPROCITY · rehber oyuncunun kararını hatırlar ve değişir */
-function adapt(r, correct) {
-  const m = game.mem;
-  if (r.lied) m.lies++;
-
-  // Rehber henüz bir kapı göstermeden seçtiysen
-  if (r.pointed === null) {
-    m.last = 'ignored';
-    return correct ? LINES.ignoredRight : LINES.ignoredWrong;
-  }
-
-  if (r.chosen === r.pointed) {
-    // UYDUN → rehber sana güvenebileceğini öğrenir, daha çok yalan söyler
-    m.obeyed++;
-    m.obeyStreak++;
-    m.last = 'obeyed';
-    game.lieChance = Math.min(KNOBS.LIE_MAX, game.lieChance + KNOBS.LIE_GROWTH_IF_OBEYED);
-    return r.lied ? LINES.obeyedLie : LINES.obeyedTruth;
-  }
-
-  // KARŞI GELDİN
-  m.defied++;
-  m.obeyStreak = 0;
-  if (r.lied) {
-    // Yalanı yakaladın → rehber daha dikkatli yalan söyler ama bir süre daha az yalan söyler
-    m.caught++;
-    m.last = 'caught';
-    game.tell = Math.max(KNOBS.TELL_MIN, game.tell - KNOBS.TELL_DECAY_IF_CAUGHT);
-    game.lieChance = Math.max(0.05, game.lieChance - KNOBS.LIE_DROP_IF_CAUGHT);
-    return correct ? LINES.defiedLieRight : LINES.defiedLieWrong;
-  }
-  m.last = 'wrongDistrust';
-  return LINES.defiedTruth;
-}
-
-function pointLine() {
-  const m = game.mem;
-  if (m.last === 'caught') return LINES.pointAfterCaught;
-  if (m.obeyStreak >= 2) return LINES.pointAfterObeyStreak;
-  if (m.last === 'wrongDistrust') return LINES.pointAfterWrongDistrust;
-  return LINES.point;
-}
-
-function endGame() {
-  game.over = true;
-  const m = game.mem;
-  let title, text;
-  if (m.lies > 0 && m.caught >= Math.ceil(m.lies * 0.6)) {
-    title = 'Rehberi çözdün';
-    text = 'Yalanlarının çoğunu yakaladın. Rehber de bunu fark etti ve yalanlarını saklamaya başladı.';
-  } else if (m.obeyed >= KNOBS.ROUNDS - 1) {
-    title = 'Rehber seni yönetti';
-    text = 'Neredeyse her seferinde onu dinledin. O da sana güvenip daha çok yalan söyledi.';
-  } else {
-    title = 'Kendi yolunu çizdin';
-    text = 'Bazen dinledin, bazen dinlemedin. Rehber hangisini yapacağını kestiremedi.';
-  }
-  document.getElementById('endTitle').textContent = title;
-  document.getElementById('endText').textContent = text;
-  document.getElementById('endStats').textContent =
-    `Doğru kapı: ${game.score} / ${KNOBS.ROUNDS} · Rehber ${m.lies} kez yalan söyledi, ` +
-    `sen ${m.caught} tanesini yakaladın · Rehberin son yalan oranı: %${Math.round(game.lieChance * 100)} · ` +
-    `Yalanlarının belli olma oranı: %${Math.round((game.tell / KNOBS.TELL_STRENGTH || 0) * 100)}`;
-  document.getElementById('end').hidden = false;
-  document.getElementById('endRestart').focus();
-}
-
-
-/* ---------------------------------------------------------
-   5) DÖNGÜ
-   --------------------------------------------------------- */
-const keys = new Set();
-let last = performance.now();
-
-function loop(t) {
-  const dt = Math.min(0.05, (t - last) / 1000);
-  last = t;
-  if (!game.over) update(t, dt);
-  draw(t);
-  requestAnimationFrame(loop);
-}
-
-function update(t, dt) {
-  const r = game.r;
-
-  // Tur sonucu ekranda bekliyor
-  if (r.phase === 'result') {
-    if (t - r.resultAt > KNOBS.RESULT_TIME) {
-      game.round++;
-      if (game.round >= KNOBS.ROUNDS) endGame();
-      else startRound();
+    function newGame() {
+      S = { passed: 0, lights: D.lights, mood: 'calm', ended: false,
+            mem: { obeyed: 0, defied: 0, lies: 0, caught: 0, asks: 0, rooms: 0 } };
+      newRoom(true);
     }
-    return;
-  }
 
-  movePlayer(dt);
-
-  // Rehber: önce bekler, sonra kapıya yürür, sonra gösterir
-  const g = game.guide;
-  if (r.phase === 'enter' && t - r.startedAt > KNOBS.GUIDE_WAIT) {
-    const spot = guideStandSpot();
-    g.tx = spot.x;
-    g.ty = spot.y;
-    if (stepTo(g, g.tx, g.ty, KNOBS.GUIDE_SPEED * dt)) {
-      r.phase = 'point';
-      r.pointed = r.pointedDoor;
-      r.pointedAt = t;
-      r.speech = pointLine();
-      say(r.speech);
+    function newRoom(first) {
+      const sym = SYMBOLS.slice().sort(() => Math.random() - 0.5);
+      gates.forEach((g, i) => { g.symbol = sym[i]; g.panel.material = ctx.toon('ink'); });
+      const truth = Math.floor(Math.random() * 3);
+      const want = gates.findIndex((g) => g.symbol === WANT);
+      const hurt = S.mood === 'hurt';
+      // KURAL: tilki yalnız kendi kapısı çıkış değilse yalan söyler; olasılık ruh haline bağlı
+      const lied = !hurt && want !== truth && Math.random() < lieChance();
+      r = { phase: 'enter', t0: simT, truth, want, lied, hurt,
+            pointed: hurt ? null : (lied ? want : truth),
+            say: first ? LINES.intro : '', sayT: simT, asks: 0, annoyed: false,
+            inspectGate: -1, inspectT: 0, inspected: -1, clue: null, reacted: -1,
+            target: null, chosen: -1, resultT: 0, impatient: false, pending: null, mood: S.mood };
+      S.mem.rooms++;
+      you.position.copy(V(0, 1.5)); you.rotation.y = Math.PI;
+      fox.position.copy(V(0.45, 1.35)); fox.rotation.y = Math.PI;
+      ctx.text('hGate', S.passed + ' / ' + D.gates);
     }
-  } else if (r.phase === 'point') {
-    // Sabırsızlık: oyuncu karar vermezse yanına gelip ısrar eder
-    if (!r.impatient && t - r.pointedAt > KNOBS.PATIENCE) {
-      r.impatient = true;
-      r.speech = LINES.impatient;
-      say(r.speech);
+
+    const lieChance = () => ({ confident: D.lieConfident, calm: D.lieCalm, nervous: D.lieNervous, insistent: D.lieInsistent }[S.mood] ?? D.lieCalm);
+    function say(text) { r.say = text; r.sayT = simT; ctx.flash(3); }
+
+    // ---- tilki nerede durur? Yalan söylerken kapının dibinde değil, gerçeğe doğru kaymış ve geride ----
+    function foxSpot() {
+      if (r.hurt) return V(-0.7, 0.55);                         // küs: kenarda durur
+      if (r.inspectGate === r.truth && r.lied) return gates[r.truth].front.clone();   // gerçeği incelersen önüne geçer
+      if (r.impatient) { const d = you.position.clone().sub(fox.position); if (d.length() > 0.45) return fox.position.clone().add(d.multiplyScalar(0.6)); return fox.position.clone(); }
+      const p = gates[r.pointed].front.clone();
+      if (r.lied && D.tell > 0) {
+        const t = gates[r.truth].front;
+        p.lerp(t, Math.min(0.45, 0.18 * D.tell));               // gerçek kapıya doğru kayar
+        p.multiplyScalar(1 - Math.min(0.35, 0.12 * D.tell));    // ve merkeze doğru geri durur
+        p.y = Y;
+      }
+      return p;
     }
-    if (r.impatient) {
-      const p = game.player;
-      const dist = Math.hypot(p.x - g.x, p.y - g.y);
-      if (dist > 90) stepTo(g, p.x, p.y, KNOBS.GUIDE_SPEED * 0.8 * dt);
+
+    // ---- AGENCY: soru sor ----
+    function ask() {
+      if (!r || r.phase !== 'point' || r.pending || r.hurt) return;
+      r.asks++; S.mem.asks++; ctx.flash(0);
+      if (r.asks > D.asksBeforeAnnoyed) { r.annoyed = true; say(LINES.annoyed); return; }
+      if (!r.lied) { r.pending = { at: simT + 0.35, fn: () => say(LINES.sureTruth) }; return; }
+      // yalan söylüyorsa duraksar (ipucu) ve bazen çatlar
+      say('…');
+      const crack = Math.random() < D.crackChance * (S.mood === 'nervous' ? 2 : 1);
+      r.pending = { at: simT + 0.4 + D.tell * 0.9, fn: () => {
+        if (crack) { r.pointed = r.truth; r.cracked = true; S.mem.caught++; say(LINES.crack); } else say(LINES.sureLie);
+      } };
     }
-  }
 
-  // Oyuncu bir kapıya girdi mi?
-  const p = game.player;
-  if (p.y <= WALL_Y + 22) {
-    for (let i = 0; i < KNOBS.DOORS; i++) {
-      if (Math.abs(p.x - doorX(i)) < DOOR_W / 2) { choose(i); break; }
+    // ---- AGENCY: kapıyı hep oyuncu seçer ----
+    function choose(i) {
+      r.phase = 'result'; r.chosen = i; r.resultT = simT;
+      const correct = i === r.truth, pointed = r.pointed;
+      const obeyed = pointed !== null && i === pointed;
+      if (r.lied) S.mem.lies++;
+      let next = S.mood, line;
+      // RECIPROCITY: tilki bu hareketi bir cevap olarak okur
+      if (r.hurt) { next = 'nervous'; line = correct ? LINES.alone : LINES.aloneWrong; }
+      else if (obeyed) { S.mem.obeyed++; next = r.cracked ? 'nervous' : 'confident'; line = correct ? LINES.obeyedTruth : LINES.obeyedLie; }
+      else if (r.lied && !r.cracked) { S.mem.defied++; S.mem.caught++; next = 'hurt'; line = LINES.caught; }
+      else { S.mem.defied++; next = 'insistent'; line = LINES.defiedTruth; }
+      if (r.annoyed && next === 'confident') next = 'calm';
+      S.mood = next;
+      if (correct) S.passed++; else S.lights--;
+      gates[r.truth].panel.material = ctx.toon('paper');
+      say(line);
+      ctx.flash(1);
     }
-  }
-}
 
-function movePlayer(dt) {
-  const p = game.player;
-  let vx = 0, vy = 0;
-  if (anyKey(INPUT_MAP.left)) vx -= 1;
-  if (anyKey(INPUT_MAP.right)) vx += 1;
-  if (anyKey(INPUT_MAP.up)) vy -= 1;
-  if (anyKey(INPUT_MAP.down)) vy += 1;
-
-  if (vx || vy) {
-    game.moveTarget = null;
-    const len = Math.hypot(vx, vy);
-    p.x += (vx / len) * KNOBS.PLAYER_SPEED * dt;
-    p.y += (vy / len) * KNOBS.PLAYER_SPEED * dt;
-  } else if (game.moveTarget) {
-    if (stepTo(p, game.moveTarget.x, game.moveTarget.y, KNOBS.PLAYER_SPEED * dt)) game.moveTarget = null;
-  }
-  p.x = clamp(p.x, 20, W - 20);
-  p.y = clamp(p.y, WALL_Y + 10, H - 20);
-}
-
-function stepTo(o, x, y, step) {
-  const dx = x - o.x, dy = y - o.y;
-  const d = Math.hypot(dx, dy);
-  if (d <= step) { o.x = x; o.y = y; return true; }
-  o.x += (dx / d) * step;
-  o.y += (dy / d) * step;
-  return false;
-}
-
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const anyKey = list => list.some(k => keys.has(k));
-
-
-/* ---------------------------------------------------------
-   6) ÇİZİM
-   --------------------------------------------------------- */
-function draw(t) {
-  const r = game.r;
-  ctx.clearRect(0, 0, W, H);
-
-  // Duvar
-  ctx.fillStyle = '#23262d';
-  ctx.fillRect(0, 0, W, WALL_Y);
-
-  // Kapılar
-  for (let i = 0; i < KNOBS.DOORS; i++) {
-    const x = doorX(i);
-    const isExit = r.phase === 'result' && i === r.truth;
-    ctx.fillStyle = isExit ? '#d8d8d8' : '#050505';
-    ctx.fillRect(x - DOOR_W / 2, 8, DOOR_W, WALL_Y - 8);
-    ctx.strokeStyle = r.phase === 'result' && i === r.chosen ? '#ffffff' : '#555';
-    ctx.lineWidth = r.phase === 'result' && i === r.chosen ? 4 : 2;
-    ctx.strokeRect(x - DOOR_W / 2, 8, DOOR_W, WALL_Y - 8);
-    ctx.fillStyle = isExit ? '#000' : '#aaa';
-    ctx.font = 'bold 22px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(String(i + 1), x, 46);
-    if (isExit) {
-      ctx.font = '12px system-ui, sans-serif';
-      ctx.fillText('ÇIKIŞ', x, 62);
+    function endGame(won) {
+      S.ended = true;
+      const m = S.mem;
+      ctx.overlay({ kick: won ? 'YOU GOT OUT' : 'YOUR LANTERN WENT OUT', title: won ? 'Out of the clearing' : 'Lost in the dark',
+        text: 'The fox always wanted the ' + WANT + ' gate. It lied ' + m.lies + ' times; you caught ' + m.caught + '. You followed it ' + m.obeyed +
+          ' times and asked “are you sure?” ' + m.asks + ' times. Its last mood: ' + S.mood + '.',
+        cta: 'PLAY AGAIN' });
     }
+
+    // ---- hareket ----
+    function stepTo(o, p, speed, dt) {
+      const d = p.clone().sub(o.position); d.y = 0; const L = d.length();
+      if (L < 0.01) return true;
+      const s = Math.min(L, speed * dt); o.position.addScaledVector(d.normalize(), s);
+      o.rotation.y += wrap(Math.atan2(d.x, d.z) - o.rotation.y) * Math.min(1, dt * 12);
+      return L <= speed * dt;
+    }
+    function clampYou() {
+      const p = you.position, L = Math.hypot(p.x, p.z);
+      if (L > R) { p.x *= R / L; p.z *= R / L; }
+      const d = p.clone().sub(fox.position); d.y = 0; const dl = d.length();   // tilki yolu kesebilir
+      if (dl < 0.26 && dl > 0.0001) p.add(d.multiplyScalar((0.26 - dl) / dl));
+      p.y = Y;
+    }
+    const faceTo = (o, p, dt, k = 8) => { o.rotation.y += wrap(Math.atan2(p.x - o.position.x, p.z - o.position.z) - o.rotation.y) * Math.min(1, dt * k); };
+
+    function update(t, dt) {
+      if (r.pending && simT >= r.pending.at) { const f = r.pending.fn; r.pending = null; f(); }
+
+      if (r.phase === 'result') {
+        if (simT - r.resultT > 2.2) {
+          if (S.passed >= D.gates) return endGame(true);
+          if (S.lights <= 0) return endGame(false);
+          newRoom(false);
+        }
+        return;
+      }
+
+      // oyuncu
+      let moving = false;
+      const kx = (keys.has('right') ? 1 : 0) - (keys.has('left') ? 1 : 0), kz = (keys.has('down') ? 1 : 0) - (keys.has('up') ? 1 : 0);
+      if (kx || kz) {
+        r.target = null; const L = Math.hypot(kx, kz);
+        you.position.x += kx / L * D.walkSpeed * dt; you.position.z += kz / L * D.walkSpeed * dt;
+        you.rotation.y += wrap(Math.atan2(kx, kz) - you.rotation.y) * Math.min(1, dt * 12); moving = true;
+      } else if (r.target) { moving = !stepTo(you, r.target, D.walkSpeed, dt); if (!moving) r.target = null; }
+      clampYou();
+      ctx.animChar(traveler, moving ? simT : 0);
+
+      // kapıdan geçtin mi?
+      for (const g of gates) if (you.position.distanceTo(V(g.x, g.z)) < 0.2) { choose(g.i); return; }
+
+      // inceleme: bir kapının önünde dur
+      const near = gates.find((g) => you.position.distanceTo(g.front) < 0.32);
+      if (near && !moving && r.inspected < 0) {
+        if (r.inspectGate !== near.i) { r.inspectGate = near.i; r.inspectT = simT; reactToInspect(near.i); }
+        if (simT - r.inspectT > D.inspectTime / 1000) { r.inspected = near.i; r.clue = near.i === r.truth ? 'a breeze…' : 'silence.'; ctx.flash(2); }
+      } else if (!near || moving) { r.inspectGate = -1; }
+
+      // tilki
+      const since = simT - r.t0;
+      if (r.phase === 'enter' && since > 0.4) r.phase = 'walk';
+      if (r.phase === 'walk' || r.phase === 'point') {
+        if (r.phase === 'point' && !r.impatient && !r.hurt && simT - r.pointT > D.patience / 1000) { r.impatient = true; say(LINES.impatient); }
+        const arrived = stepTo(fox, foxSpot(), D.foxSpeed, dt);
+        ctx.animChar(foxC, arrived ? 0 : simT);
+        if (arrived) {
+          faceTo(fox, you.position, dt, 4);
+          if (r.phase === 'walk') { r.phase = 'point'; r.pointT = simT; say(r.hurt ? LINES.hurt : pointLine()); }
+        }
+      } else ctx.animChar(foxC, 0);
+      animateHead(dt);
+    }
+
+    function reactToInspect(i) {
+      if (r.hurt || r.phase !== 'point' || r.reacted === i) return;
+      r.reacted = i;
+      if (r.lied && i === r.truth) say(LINES.blockTruth);
+      else if (i === r.want && r.pointed === r.want) say(LINES.watchWant);
+    }
+
+    function pointLine() {
+      return { confident: LINES.pointConfident, insistent: LINES.pointInsistent, nervous: LINES.pointNervous }[S.mood] || LINES.point;
+    }
+
+    // ---- beden dili: yalan söylerken başı gerçek kapıya kaçar ----
+    function animateHead(dt) {
+      let look = you.position;
+      if (r.phase === 'point' && !r.hurt) {
+        const cyc = (simT - r.pointT) % 1.8;
+        const flick = Math.min(1.2, 0.15 + D.tell * 0.45);
+        if (r.lied && !r.cracked && D.tell > 0 && cyc < flick) look = gates[r.truth].front;
+        else if (cyc < 0.6) look = gates[r.pointed].front;
+      }
+      if (r.hurt) look = V(-2, 2);   // küs: başını çevirir
+      const want = wrap(Math.atan2(look.x - fox.position.x, look.z - fox.position.z) - fox.rotation.y);
+      const cur = foxC.head.rotation.y;
+      foxC.head.rotation.y = cur + (Math.max(-1.3, Math.min(1.3, want)) - cur) * Math.min(1, dt * 14);
+    }
+
+    // ---- etiketler ----
+    function tags() {
+      let n = 0;
+      gates.forEach((g) => {
+        let txt = (g.i + 1) + ' ' + g.symbol, hot = false;
+        if (r.phase === 'result') { if (g.i === r.truth) { txt += ' EXIT'; hot = true; } else if (g.i === r.chosen) txt += ' ✗'; }
+        else if (r.phase === 'point' && g.i === r.pointed) { txt += ' ← “this one”'; hot = true; }
+        if (r.inspected === g.i && r.phase !== 'result') txt += ' · ' + r.clue;
+        ctx.tag(n++, txt, V(g.x, g.z, Y + 0.85), hot, 0);
+      });
+      if (r.say && simT - r.sayT < 4.5) ctx.tag(n++, '🦊 ' + r.say, V(fox.position.x, fox.position.z, Y + 0.75), true, 0, 'speech');
+      if (r.inspectGate >= 0 && r.inspected < 0 && r.phase !== 'result') {
+        const p = Math.min(1, (simT - r.inspectT) / (D.inspectTime / 1000));
+        ctx.tag(n++, 'inspecting ' + '▮'.repeat(Math.round(p * 5)) + '▯'.repeat(5 - Math.round(p * 5)), V(you.position.x, you.position.z, Y + 0.7), false, 0);
+      }
+      ctx.tagsFrom(n);
+    }
+
+    function onGate(i) { if (r.phase !== 'result') r.target = gates[i].front.clone().lerp(V(gates[i].x, gates[i].z), 1.2); }
+
+    return {
+      start() {
+        ctx.hide(3, 5);   // baykuşlar ve bekçi bu oyunda yok
+        [1, 2].forEach((i) => ctx.root.children[i].children.forEach((tr) => { if (tr.position.z > 0.4) ctx.hideObj(tr); }));
+        simT = 0; keys.clear(); newGame();
+      },
+      stop() { light.intensity = 0; keys.clear(); },
+      begin() { if (S.ended) newGame(); },
+      pointer(type, e) {
+        if (type !== 'down' || !r || r.phase === 'result') return;
+        const p = ctx.toLocal(e, Y); if (!p) return;
+        if (p.distanceTo(fox.position) < 0.3) { ask(); return; }
+        const gi = gates.findIndex((g) => p.distanceTo(V(g.x, g.z)) < 0.32);
+        if (gi >= 0) { onGate(gi); return; }
+        r.target = V(p.x, p.z);
+      },
+      key(e, down) {
+        const k = e.key.toLowerCase();
+        const dir = { arrowup: 'up', w: 'up', arrowdown: 'down', s: 'down', arrowleft: 'left', a: 'left', arrowright: 'right', d: 'right' }[k];
+        if (dir) { if (down) keys.add(dir); else keys.delete(dir); e.preventDefault(); return true; }
+        if (!down) return false;
+        if (['1', '2', '3'].includes(k)) { onGate(Number(k) - 1); return true; }
+        if (k === 'q') { ask(); return true; }
+        return false;
+      },
+      frame(t, dt) {
+        if (!S) return;
+        if (ctx.isPlaying() && !S.ended) { simT += dt; update(t, dt); }
+        light.intensity = ctx.night() ? 1 + 3 * (S.lights / D.lights) : 0;
+        you.visible = true;
+        tags();
+      },
+      hud() { return { hGate: S.passed + ' / ' + D.gates, hLight: '●'.repeat(Math.max(0, S.lights)) + '○'.repeat(Math.max(0, D.lights - S.lights)), hMood: S.mood, hCaught: S.mem.caught }; },
+      rule: () => 'mood ' + S.mood + ' → lie ' + Math.round((S.mood === 'hurt' ? 0 : lieChance()) * 100) + '%',
+      caption() {
+        if (!r) return 'The fox says it knows the way out.';
+        if (r.phase === 'result') return r.chosen === r.truth ? 'Through the gate.' : 'Wrong gate. Your lantern dims.';
+        if (r.hurt) return 'The fox is sulking. You are on your own.';
+        if (r.phase === 'point') return r.inspected >= 0 ? 'You looked for yourself. Now choose.' : 'It points. Follow, ask, or look for yourself.';
+        return 'The fox walks ahead…';
+      },
+      status: () => S ? 'fox: ' + S.mood + ' · lied ' + S.mem.lies + ' · caught ' + S.mem.caught + ' · obeyed ' + S.mem.obeyed + ' · asked ' + S.mem.asks : '',
+      knob() {}
+    };
   }
-
-  drawGuide(t);
-  drawPlayer();
-
-  // Konuşma balonu
-  const g = game.guide;
-  const text = r.phase === 'result' ? r.resultText : r.speech;
-  if (text) drawBubble(text, g.x, g.y + 34);   // balon rehberin altında, kolunu kapatmasın
-
-  // Tur sonucu
-  if (r.phase === 'result') {
-    const correct = r.chosen === r.truth;
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(0, H - 70, W, 70);
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 22px system-ui, sans-serif';
-    ctx.fillText(correct ? '✓ DOĞRU KAPI' : '✗ YANLIŞ KAPI', W / 2, H - 40);
-    ctx.font = '15px system-ui, sans-serif';
-    ctx.fillText(r.lied ? 'Rehber bu turda yalan söyledi.' : 'Rehber bu turda doğruyu söyledi.', W / 2, H - 16);
-  }
-}
-
-function drawPlayer() {
-  const p = game.player;
-  ctx.fillStyle = '#f2f2f2';
-  ctx.beginPath();
-  ctx.arc(p.x, p.y, 14, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#111';
-  ctx.font = 'bold 11px system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('SEN', p.x, p.y + 4);
-}
-
-function drawGuide(t) {
-  const g = game.guide;
-  const r = game.r;
-
-  // Gövde
-  ctx.fillStyle = '#7a6a9a';
-  ctx.beginPath();
-  ctx.arc(g.x, g.y, 24, 0, Math.PI * 2);
-  ctx.fill();
-
-  // İşaret eden kol
-  if (r.phase === 'point' || (r.phase === 'result' && r.pointed !== null)) {
-    const dx = doorX(r.pointedDoor) - g.x;
-    const dy = WALL_Y - g.y;
-    const d = Math.hypot(dx, dy) || 1;
-    ctx.strokeStyle = '#7a6a9a';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(g.x + (dx / d) * 20, g.y + (dy / d) * 20);
-    ctx.lineTo(g.x + (dx / d) * 50, g.y + (dy / d) * 50);
-    ctx.stroke();
-  }
-
-  // Gözler: nereye baktığı ipucu
-  const look = guideLookTarget(t);
-  const lx = look.x - g.x, ly = look.y - g.y;
-  const ld = Math.hypot(lx, ly) || 1;
-  for (const side of [-1, 1]) {
-    const ex = g.x + side * 9, ey = g.y - 5;
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(ex, ey, 7, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#111';
-    ctx.beginPath();
-    ctx.arc(ex + (lx / ld) * 3.5, ey + (ly / ld) * 3.5, 3.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-function drawBubble(text, x, y) {
-  ctx.font = '15px system-ui, sans-serif';
-  const words = text.split(' ');
-  const lines = [];
-  let line = '';
-  for (const w of words) {
-    const test = line ? line + ' ' + w : w;
-    if (ctx.measureText(test).width > 240 && line) { lines.push(line); line = w; }
-    else line = test;
-  }
-  lines.push(line);
-
-  const lh = 19;
-  const bw = Math.max(...lines.map(l => ctx.measureText(l).width)) + 20;
-  const bh = lines.length * lh + 12;
-  const bx = clamp(x - bw / 2, 6, W - bw - 6);
-  const by = clamp(y, WALL_Y + 4, H - bh - 6);
-
-  ctx.fillStyle = 'rgba(255,255,255,0.95)';
-  ctx.fillRect(bx, by, bw, bh);
-  ctx.fillStyle = '#111';
-  ctx.textAlign = 'left';
-  lines.forEach((l, i) => ctx.fillText(l, bx + 10, by + 22 + i * lh - 4));
-}
-
-
-/* ---------------------------------------------------------
-   7) GİRİŞLER · klavye, fare/dokunma ve kapı butonları
-   --------------------------------------------------------- */
-function say(text) {
-  document.getElementById('speech').textContent = text;
-}
-
-function updateHud() {
-  document.getElementById('round').textContent = `Tur ${Math.min(game.round + 1, KNOBS.ROUNDS)} / ${KNOBS.ROUNDS}`;
-  document.getElementById('score').textContent = `Doğru kapı: ${game.score}`;
-}
-
-function walkToDoor(i) {
-  if (i < 0 || i >= KNOBS.DOORS) return;
-  game.moveTarget = { x: doorX(i), y: WALL_Y };
-}
-
-document.addEventListener('keydown', e => {
-  if (e.ctrlKey || e.metaKey || e.altKey) return;
-  const k = e.key.toLowerCase();
-  if (k === INPUT_MAP.restart) { newGame(); e.preventDefault(); return; }
-  const d = INPUT_MAP.doors.indexOf(k);
-  if (d !== -1) { walkToDoor(d); e.preventDefault(); return; }
-  if ([...INPUT_MAP.up, ...INPUT_MAP.down, ...INPUT_MAP.left, ...INPUT_MAP.right].includes(k)) {
-    keys.add(k);
-    e.preventDefault();
-  }
-});
-document.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
-window.addEventListener('blur', () => keys.clear());
-
-canvas.addEventListener('pointerdown', e => {
-  const rect = canvas.getBoundingClientRect();
-  const x = ((e.clientX - rect.left) / rect.width) * W;
-  const y = ((e.clientY - rect.top) / rect.height) * H;
-  // Bir kapıya tıkladıysan oraya yürü
-  for (let i = 0; i < KNOBS.DOORS; i++) {
-    if (y < WALL_Y + 30 && Math.abs(x - doorX(i)) < DOOR_W / 2) { walkToDoor(i); return; }
-  }
-  game.moveTarget = { x, y };
-});
-
-document.querySelectorAll('[data-door]').forEach(b =>
-  b.addEventListener('click', () => walkToDoor(Number(b.dataset.door))));
-document.getElementById('restart').addEventListener('click', newGame);
-document.getElementById('endRestart').addEventListener('click', newGame);
-
-
-/* ---------------------------------------------------------
-   8) BAŞLAT
-   --------------------------------------------------------- */
-newGame();
-requestAnimationFrame(loop);
+};
