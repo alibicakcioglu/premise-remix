@@ -68,7 +68,7 @@ window.OYUNLAR['02'] = {
     'Add a fifth mood, <b>grateful</b>, for when you follow it after catching a lie.'],
   question: 'When did a system you trusted steer you toward what it wanted?',
   overlay: { title: 'The Guide', text: 'You are lost in a clearing at night. A fox offers to show you the way out. It knows which gate is the exit. Does it want you to find it?', cta: 'CLICK TO ENTER' },
-  view: { at: [0, 0.35, 0.1], zoom: 2.8, pitch: 1.08 },
+  view: { at: [0, 0.35, -0.3], zoom: 2.8, pitch: 1.08 },
 
   make(ctx) {
     const { THREE, D, group } = ctx;
@@ -128,8 +128,8 @@ window.OYUNLAR['02'] = {
             inspectGate: -1, inspectT: 0, inspected: -1, clue: null, reacted: -1,
             target: null, chosen: -1, resultT: 0, impatient: false, pending: null, mood: S.mood };
       S.mem.rooms++;
-      you.position.copy(V(0, 1.5)); you.rotation.y = Math.PI;
-      fox.position.copy(V(0.45, 1.35)); fox.rotation.y = Math.PI;
+      you.position.copy(V(0, 1.25)); you.rotation.y = Math.PI;
+      fox.position.copy(V(0.45, 1.1)); fox.rotation.y = Math.PI;
       ctx.text('hGate', S.passed + ' / ' + D.gates);
     }
 
@@ -140,7 +140,7 @@ window.OYUNLAR['02'] = {
     function foxSpot() {
       if (r.hurt) return V(-0.7, 0.55);                         // küs: kenarda durur
       if (r.inspectGate === r.truth && r.lied) return gates[r.truth].front.clone();   // gerçeği incelersen önüne geçer
-      if (r.impatient) { const d = you.position.clone().sub(fox.position); if (d.length() > 0.45) return fox.position.clone().add(d.multiplyScalar(0.6)); return fox.position.clone(); }
+      if (r.impatient) return r.impSpot;                        // sabırsız: sana doğru birkaç adım atar
       const p = gates[r.pointed].front.clone();
       if (r.lied && D.tell > 0) {
         const t = gates[r.truth].front;
@@ -248,7 +248,7 @@ window.OYUNLAR['02'] = {
       const since = simT - r.t0;
       if (r.phase === 'enter' && since > 0.4) r.phase = 'walk';
       if (r.phase === 'walk' || r.phase === 'point') {
-        if (r.phase === 'point' && !r.impatient && !r.hurt && simT - r.pointT > D.patience / 1000) { r.impatient = true; say(LINES.impatient); }
+        if (r.phase === 'point' && !r.impatient && !r.hurt && simT - r.pointT > D.patience / 1000) { r.impatient = true; r.impSpot = fox.position.clone().lerp(you.position, 0.35); say(LINES.impatient); }
         const arrived = stepTo(fox, foxSpot(), D.foxSpeed, dt);
         ctx.animChar(foxC, arrived ? 0 : simT);
         if (arrived) {
@@ -295,7 +295,7 @@ window.OYUNLAR['02'] = {
         if (r.inspected === g.i && r.phase !== 'result') txt += ' · ' + r.clue;
         ctx.tag(n++, txt, V(g.x, g.z, Y + 0.85), hot, 0);
       });
-      if (r.say && simT - r.sayT < 4.5) ctx.tag(n++, '🦊 ' + r.say, V(fox.position.x, fox.position.z, Y + 0.75), true, 0, 'speech');
+      if (r.say && simT - r.sayT < 4.5) ctx.tag(n++, '🦊 ' + r.say, V(fox.position.x, fox.position.z, Y), true, -16, 'speech');   // ayaklarının altında
       if (r.inspectGate >= 0 && r.inspected < 0 && r.phase !== 'result') {
         const p = Math.min(1, (simT - r.inspectT) / (D.inspectTime / 1000));
         ctx.tag(n++, 'inspecting ' + '▮'.repeat(Math.round(p * 5)) + '▯'.repeat(5 - Math.round(p * 5)), V(you.position.x, you.position.z, Y + 0.7), false, 0);
