@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>REHBER · Agency × Reciprocity</title>
+  <meta name="description" content="Sana yolu gösteren birine güvenebilir misin? NMED 3203 premise remix.">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header>
+    <h1>REHBER</h1>
+    <p class="instruction">
+      Bir kapıdan geç. Rehber sana yolu gösterecek, ama her zaman doğruyu söylemez.
+      <span class="keys">Hareket: <kbd>←↑↓→</kbd> / tıkla · Kapıya git: <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></span>
+    </p>
+  </header>
+
+  <section class="hud" aria-label="Durum">
+    <span id="round">Tur 1 / 6</span>
+    <span id="score">Doğru kapı: 0</span>
+  </section>
+
+  <div class="stage">
+    <canvas id="room" width="800" height="520" aria-label="Oda: kapılar, sen ve rehber"></canvas>
+  </div>
+
+  <!-- Ekran okuyucular için rehberin sözleri ve tur sonuçları -->
+  <p id="speech" class="sr-only" aria-live="polite"></p>
+
+  <div class="door-buttons" aria-label="Kapı seçimi (alternatif giriş)">
+    <button type="button" data-door="0">Kapı 1</button>
+    <button type="button" data-door="1">Kapı 2</button>
+    <button type="button" data-door="2">Kapı 3</button>
+    <button type="button" id="restart">Yeniden başla (R)</button>
+  </div>
+
+  <div id="end" class="end" hidden>
+    <div class="end-box" role="dialog" aria-modal="true" aria-labelledby="endTitle">
+      <h2 id="endTitle"></h2>
+      <p id="endText"></p>
+      <p id="endStats" class="stats"></p>
+      <button type="button" id="endRestart">Yeniden başla (R)</button>
+    </div>
+  </div>
+
+  <footer>
+    NMED 3203 · IMA Lab premise remix · Premise 01 Agency × Premise 02 Reciprocity ·
+    Ali Eren Bıçakçıoğlu (AI destekli, bkz. README)
+  </footer>
+
+  <script src="./script.js"></script>
+</body>
+</html>
