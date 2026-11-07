@@ -10,8 +10,6 @@ const LINES = {
   intro: 'Want out? Stay on my good side.',
   point: 'This one. Trust me.',
   pointConfident: 'This one, as always.',
-  pointInsistent: 'THIS one. Listen to me this time.',
-  pointNervous: 'I think… this one.',
   hurt: 'Find it yourself.',
   impatient: 'Come on. We don’t have all night.',
   sureTruth: 'Yes. I’m sure.',
@@ -38,7 +36,7 @@ window.OYUNLAR['02'] = {
   anat: ['walk · ask · inspect', 'reply → mood', 'mood · memory', 'points · lies · sulks'], hot: 2,
   hud: [['PASSED', 'hGate'], ['LIGHT', 'hLight'], ['FOX', 'hMood', 'ghosts'], ['CAUGHT', 'hCaught']],
   design: {
-    lieConfident: 0.85, lieCalm: 0.5, lieNervous: 0.2, lieInsistent: 0.95,
+    lieConfident: 0.9, lieCalm: 0.7,
     tell: 1, crackChance: 0.35, asksBeforeAnnoyed: 2, inspectTime: 1500, patience: 6000,
     walkSpeed: 1.1, foxSpeed: 1.8, doors: 3, toEscape: 5, lights: 3, foxGate: 'random'
   },
@@ -52,13 +50,9 @@ window.OYUNLAR['02'] = {
     { key: 'lights', step: 1, min: 1, max: 9, note: 'new game',
       tr: 'Fener hakkı: kaç yanlış kapıda oyun biter. Yeni oyunda geçerli.' },
     { key: 'lieCalm', step: 0.05, min: 0, max: 1, note: 'live',
-      tr: 'İlk odada yalan söyleme olasılığı (0 = hiç, 1 = her zaman).' },
+      tr: 'calm: sakinken yalan olasılığı (başta, küsme sonrası, ona güvenmediğinde). 0 = hiç, 1 = her fırsatta. Sadece kendi kapısı çıkış değilken yalan söyleyebilir.' },
     { key: 'lieConfident', step: 0.05, min: 0, max: 1, note: 'live',
-      tr: 'Onu takip ettikten sonra yalan söyleme olasılığı.' },
-    { key: 'lieInsistent', step: 0.05, min: 0, max: 1, note: 'live',
-      tr: 'Doğruyu söylerken ona güvenmediğinde, inadına yalan söyleme olasılığı.' },
-    { key: 'lieNervous', step: 0.05, min: 0, max: 1, note: 'live',
-      tr: 'Küstükten sonraki odada yalan söyleme olasılığı.' },
+      tr: 'confident: onu takip ettikten sonra yalan olasılığı. Güvenirsen seni kullanır.' },
     { key: 'tell', step: 0.25, min: 0, max: 2, note: 'live',
       tr: 'Yalan söylerken beden dilinin ne kadar belli olduğu (duruşu, bakışı). 0 = hiç ipucu yok.' },
     { key: 'crackChance', step: 0.05, min: 0, max: 1, note: 'live',
@@ -75,9 +69,9 @@ window.OYUNLAR['02'] = {
       tr: 'Tilkinin yürüme hızı.' }],
   code: [
     '<span class="c">// 3) RULE: the fox reads every move as a reply</span>',
-    '<span class="k">if</span> (obeyed) mood = <span class="s">\'confident\'</span>;   <span class="c">// it relaxes, lies more</span>',
-    '<span class="k">else if</span> (caughtLie) mood = <span class="s">\'hurt\'</span>;  <span class="c">// it sulks, no guiding</span>',
-    '<span class="k">else if</span> (doubtedTruth) mood = <span class="s">\'insistent\'</span>;',
+    '<span class="k">if</span> (obeyed) mood = <span class="s">\'confident\'</span>;   <span class="c">// güvenirsen seni kullanır</span>',
+    '<span class="k">else if</span> (caughtLie) mood = <span class="s">\'hurt\'</span>;  <span class="c">// yakalarsan küser: 1 oda yol göstermez</span>',
+    '<span class="k">else</span> mood = <span class="s">\'calm\'</span>;',
     'lie = wantsOwnGate &amp;&amp; random() &lt; DESIGN[<span class="s">\'lie\'</span> + mood];'],
   tasks: [
     'Set <b>tell</b> to 0. Can you still read the fox? What do you rely on instead?',
@@ -136,7 +130,8 @@ window.OYUNLAR['02'] = {
       // tilkinin kendi kapısı bu oyun boyunca sabit, yeni oyunda yeniden seçilir
       const want = SYMBOLS.includes(D.foxGate) ? D.foxGate : SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
       S = { passed: 0, lights: D.lights, mood: 'calm', ended: false, want,
-            mem: { obeyed: 0, defied: 0, lies: 0, caught: 0, asks: 0, rooms: 0 } };
+            mem: { obeyed: 0, defied: 0, lies: 0, caught: 0, asks: 0, rooms: 0 }, log: [] };
+      renderLog();
       newRoom(true);
     }
 
@@ -157,7 +152,7 @@ window.OYUNLAR['02'] = {
       // KURAL: tilki yalnız kendi kapısı çıkış değilse yalan söyler; olasılık ruh haline bağlı
       const lied = !hurt && want !== truth && Math.random() < lieChance();
       r = { phase: 'enter', t0: simT, truth, want, lied, hurt,
-            pointed: hurt ? null : (lied ? want : truth),
+            pointed: hurt ? null : (lied ? want : truth), pointedFirst: hurt ? -1 : (lied ? want : truth),
             say: first ? LINES.intro : '', sayT: simT, asks: 0, annoyed: false,
             inspectGate: -1, inspectT: 0, inspected: -1, clue: null, reacted: -1,
             target: null, chosen: -1, resultT: 0, impatient: false, pending: null, mood: S.mood };
@@ -167,7 +162,7 @@ window.OYUNLAR['02'] = {
       ctx.text('hGate', S.passed + ' / ' + D.toEscape);
     }
 
-    const lieChance = () => ({ confident: D.lieConfident, calm: D.lieCalm, nervous: D.lieNervous, insistent: D.lieInsistent }[S.mood] ?? D.lieCalm);
+    const lieChance = () => (S.mood === 'confident' ? D.lieConfident : D.lieCalm);
     function say(text) { r.say = text; r.sayT = simT; ctx.flash(3); }
 
     // ---- tilki nerede durur? Yalan söylerken kapının dibinde değil, gerçeğe doğru kaymış ve geride ----
@@ -193,7 +188,7 @@ window.OYUNLAR['02'] = {
       if (!r.lied) { r.pending = { at: simT + 0.35, fn: () => say(LINES.sureTruth) }; return; }
       // yalan söylüyorsa duraksar (ipucu) ve bazen çatlar
       say('…');
-      const crack = Math.random() < D.crackChance * (S.mood === 'nervous' ? 2 : 1);
+      const crack = Math.random() < D.crackChance;
       r.pending = { at: simT + 0.4 + D.tell * 0.9, fn: () => {
         if (crack) { r.pointed = r.truth; r.cracked = true; S.mem.caught++; say(LINES.crack); } else say(LINES.sureLie);
       } };
@@ -207,16 +202,43 @@ window.OYUNLAR['02'] = {
       if (r.lied) S.mem.lies++;
       let next = S.mood, line;
       // RECIPROCITY: tilki bu hareketi bir cevap olarak okur
-      if (r.hurt) { next = 'nervous'; line = correct ? LINES.alone : LINES.aloneWrong; }
-      else if (obeyed) { S.mem.obeyed++; next = r.cracked ? 'nervous' : 'confident'; line = correct ? LINES.obeyedTruth : LINES.obeyedLie; }
+      if (r.hurt) { next = 'calm'; line = correct ? LINES.alone : LINES.aloneWrong; }
+      else if (obeyed) { S.mem.obeyed++; next = r.cracked ? 'calm' : 'confident'; line = correct ? LINES.obeyedTruth : LINES.obeyedLie; }
       else if (r.lied && !r.cracked) { S.mem.defied++; S.mem.caught++; next = 'hurt'; line = LINES.caught; }
-      else { S.mem.defied++; next = 'insistent'; line = LINES.defiedTruth; }
+      else { S.mem.defied++; next = 'calm'; line = LINES.defiedTruth; }
+      logRoom(correct);
       if (r.annoyed && next === 'confident') next = 'calm';
       S.mood = next;
       if (correct) S.passed++; else S.lights--;
       gates[r.truth].panel.material = ctx.toon('paper');
       say(line);
       ctx.flash(1);
+    }
+
+    // ---- FEEDBACK: tilkinin defteri · her odada ne gösterdi, doğru muydu ----
+    function verdict() {
+      const ex = gates[r.truth].symbol;
+      if (r.hurt) return 'The fox was sulking. The exit was ' + ex + '.';
+      const p = gates[r.pointedFirst].symbol;
+      if (r.lied && r.cracked) return 'It lied (' + p + '), then confessed when you asked. The exit was ' + ex + '.';
+      if (r.lied) return 'It LIED: it pointed at ' + p + ', the exit was ' + ex + '.';
+      return 'It told the truth: ' + p + ' was the exit.';
+    }
+    function logRoom(correct) {
+      const ex = gates[r.truth].symbol;
+      let txt;
+      if (r.hurt) txt = '—  sulked · exit ' + ex;
+      else {
+        const p = gates[r.pointedFirst].symbol;
+        txt = p + '  ' + (r.lied ? (r.cracked ? 'LIE → confessed' : 'LIE · exit ' + ex) : 'truth');
+      }
+      S.log.push({ n: S.mem.rooms, txt, lie: r.lied, you: correct });
+      renderLog();
+    }
+    function renderLog() {
+      const el = document.getElementById('ledgerList'); if (!el) return;
+      el.innerHTML = S.log.length ? S.log.map((e) => '<li class="' + (e.lie ? 'lie' : '') + '"><span>' + e.n + '</span>' + e.txt + '<b>' + (e.you ? '✓' : '✗') + '</b></li>').join('')
+        : '<li class="empty">Each room is written here.</li>';
     }
 
     function endGame(won) {
@@ -301,7 +323,7 @@ window.OYUNLAR['02'] = {
     }
 
     function pointLine() {
-      return { confident: LINES.pointConfident, insistent: LINES.pointInsistent, nervous: LINES.pointNervous }[S.mood] || LINES.point;
+      return S.mood === 'confident' ? LINES.pointConfident : LINES.point;
     }
 
     // ---- beden dili: yalan söylerken başı gerçek kapıya kaçar ----
@@ -375,7 +397,7 @@ window.OYUNLAR['02'] = {
       rule: () => 'mood ' + S.mood + ' → lie ' + Math.round((S.mood === 'hurt' ? 0 : lieChance()) * 100) + '%',
       caption() {
         if (!r) return 'The fox says it knows the way out.';
-        if (r.phase === 'result') return r.chosen === r.truth ? 'Through the gate.' : 'Wrong gate. Your lantern dims.';
+        if (r.phase === 'result') return (r.chosen === r.truth ? 'Through the gate. ' : 'Wrong gate, your lantern dims. ') + verdict();
         if (r.hurt) return 'The fox is sulking. You are on your own.';
         if (r.phase === 'point') return r.inspected >= 0 ? 'You looked for yourself. Now choose.' : 'It points. Follow, ask, or look for yourself.';
         return 'The fox walks ahead…';

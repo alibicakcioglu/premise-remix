@@ -22,7 +22,7 @@ Get through 5 gates before your lantern goes out (3 wrong gates). In the CODE ta
 ## Where the premises live in the code (`script.js`)
 
 - **Agency:** `ask()`, the inspection block in `update()`, and `choose()`. The player can follow, question, investigate, or defy; the gate is always the player's choice.
-- **Reciprocity:** `choose()` reads the player's move as a reply and sets the fox's next `mood` (confident / insistent / hurt / nervous). `newRoom()` turns that mood into a lie probability (`DESIGN.lie…`). `ask()` and `reactToInspect()` make the fox answer within a room.
+- **Reciprocity:** `choose()` reads the player's move as a reply and sets the fox's next `mood` (calm / confident / hurt): follow it and it uses you, catch it and it sulks for a room. `newRoom()` turns that mood into a lie probability (`DESIGN.lie…`). `ask()` and `reactToInspect()` make the fox answer within a room.
 - Body language: `foxSpot()` and `animateHead()`, scaled by `DESIGN.tell`.
 - All numbers are in `design` / `knobs` at the top of `script.js` and can be changed live in the **CODE** tab. The fox's lines are in `LINES`.
 
