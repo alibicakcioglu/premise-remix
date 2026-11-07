@@ -128,8 +128,8 @@ window.OYUNLAR['02'] = {
             inspectGate: -1, inspectT: 0, inspected: -1, clue: null, reacted: -1,
             target: null, chosen: -1, resultT: 0, impatient: false, pending: null, mood: S.mood };
       S.mem.rooms++;
-      you.position.copy(V(0, 1.25)); you.rotation.y = Math.PI;
-      fox.position.copy(V(0.45, 1.1)); fox.rotation.y = Math.PI;
+      you.position.copy(V(0, 0.95)); you.rotation.y = Math.PI;
+      fox.position.copy(V(0.45, 0.8)); fox.rotation.y = Math.PI;
       ctx.text('hGate', S.passed + ' / ' + D.gates);
     }
 
