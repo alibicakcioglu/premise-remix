@@ -525,4 +525,3 @@ body[data-tab="code"] .card.ledger { display: none !important; }
 .ledger li b { margin-left: auto; font-weight: 400; }
 .ledger li.lie { color: var(--accent); }
 .ledger li.empty { color: var(--mute); font-size: 17px; }
-@media (max-width: 900px) { .ledger { top: auto; bottom: 150px; right: 12px; min-width: 0; } }

@@ -235,6 +235,14 @@ window.OYUNLAR['02'] = {
       S.log.push({ n: S.mem.rooms, txt, lie: r.lied, you: correct });
       renderLog();
     }
+    // defter her zaman skor panelinin hemen altında dursun (ekran daralınca panel aşağı kayar)
+    let placeN = 0;
+    function placeLedger() {
+      const led = document.getElementById('ledger'), hud = document.getElementById('gHud'); if (!led || !hud) return;
+      const h = hud.getBoundingClientRect(); if (!h.height) return;
+      led.style.top = Math.round(h.bottom + 10) + 'px';
+    }
+    addEventListener('resize', placeLedger);
     function renderLog() {
       const el = document.getElementById('ledgerList'); if (!el) return;
       el.innerHTML = S.log.length ? S.log.map((e) => '<li class="' + (e.lie ? 'lie' : '') + '"><span>' + e.n + '</span>' + e.txt + '<b>' + (e.you ? '✓' : '✗') + '</b></li>').join('')
@@ -388,6 +396,7 @@ window.OYUNLAR['02'] = {
       },
       frame(t, dt) {
         if (!S) return;
+        if (placeN++ % 30 === 0) placeLedger();
         if (ctx.isPlaying() && !S.ended) { simT += dt; update(t, dt); }
         light.intensity = ctx.night() ? 1 + 3 * (S.lights / D.lights) : 0;
         you.visible = true;
