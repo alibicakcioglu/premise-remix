@@ -134,6 +134,7 @@ function createGameShell(THREE, env) {
       else if (k.type === 'choice') f = '<select data-knob="' + k.key + '">' + k.options.map((o) => '<option value="' + o + '">\'' + o + '\'</option>').join('') + '</select>';
       else f = '<input type="number" data-knob="' + k.key + '" step="' + k.step + '" min="' + k.min + '" max="' + k.max + '">';
       html += line(n++, '  ' + k.key + ': ' + f + ',  <span class="c">// ' + (k.note || '') + '</span>', k.key);
+      if (k.tr) html += line(n++, '    <span class="c tr">↳ ' + esc(k.tr) + '</span>');   // Türkçe açıklama
     });
     html += line(n++, '};') + line(n++, ' ');
     (spec.code || []).forEach((c) => { html += line(n++, c); });
@@ -219,13 +220,11 @@ function createGameShell(THREE, env) {
     const k = e.key.toLowerCase();
     if (!inGame()) {
       if (k === 'c' && !e.shiftKey) setTab(tab === 'code' ? 'play' : 'code');
-      else if (k === 'n' && e.shiftKey) setTab(tab === 'notes' ? 'play' : 'notes');
       return;
     }
     if (cur.game.key && cur.game.key(e, true)) { heldKeys.set(e.code, e); cur.ctx.audio(); if (!playing && !(cur.overlay && cur.overlay.choices)) { setPlaying(true); if (cur.game.begin) cur.game.begin(); } return; }
     if (cur.spec.ownsKeys) return;
     if (k === 'c' && !e.shiftKey) setTab(tab === 'code' ? 'play' : 'code');
-    else if (k === 'n' && e.shiftKey) setTab(tab === 'notes' ? 'play' : 'notes');
   });
   addEventListener('keyup', (e) => { heldKeys.delete(e.code); if (inGame() && cur.game.key) cur.game.key(e, false); });
 

@@ -15,9 +15,9 @@ You are lost in a clearing at night. A fox offers to show you the way out. It kn
 | Ask “are you sure?” | click the fox | `Q` |
 | Inspect a gate | stand still in front of it | stand still in front of it |
 | Choose | walk through a gate | walk through a gate |
-| Code / notes | CODE / NOTES tabs | `C` / `Shift+N` |
+| Design parameters (with Turkish notes) | CODE tab | `C` |
 
-Get through 5 gates before your lantern goes out (3 wrong gates). In the CODE tab, `doors` sets how many gates each room has (2–6, from the next room) and `toEscape` how many you must pass. `foxGate` picks the fox’s own gate: `random` (default, a new symbol every game) or a fixed symbol (useful for a predictable demo).
+Get through 5 gates before your lantern goes out (3 wrong gates). In the CODE tab, `doors` sets how many gates each room has (2–6, from the next game; symbols stay on the same gates for the whole game) and `toEscape` how many you must pass. `foxGate` picks the fox’s own gate: `random` (default, a new symbol every game) or a fixed symbol (useful for a predictable demo).
 
 ## Where the premises live in the code (`script.js`)
 

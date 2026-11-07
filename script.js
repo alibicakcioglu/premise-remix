@@ -34,7 +34,7 @@ window.OYUNLAR['02'] = {
   promise: 'Participation can be designed. Design the dialogue, not the message.',
   source: 'IMA Lab experiment 02 · Eye Field (engine, place and characters)',
   caption: 'The fox says it knows the way out.',
-  hint: 'click = walk · click the fox or Q = “are you sure?” · stand still at a gate = inspect · walk through a gate = choose · arrows / WASD = walk · 1–6 = go to gate · C code',
+  hint: 'click = walk · click the fox or Q = “are you sure?” · stand still at a gate = inspect · walk through a gate = choose · arrows / WASD = walk · 1–6 = go to gate · C = code',
   anat: ['walk · ask · inspect', 'reply → mood', 'mood · memory', 'points · lies · sulks'], hot: 2,
   hud: [['PASSED', 'hGate'], ['LIGHT', 'hLight'], ['FOX', 'hMood', 'ghosts'], ['CAUGHT', 'hCaught']],
   design: {
@@ -43,21 +43,36 @@ window.OYUNLAR['02'] = {
     walkSpeed: 1.1, foxSpeed: 1.8, doors: 3, toEscape: 5, lights: 3, foxGate: 'random'
   },
   knobs: [
-    { key: 'lieConfident', step: 0.05, min: 0, max: 1, note: 'live · after you obey' },
-    { key: 'lieCalm', step: 0.05, min: 0, max: 1, note: 'live · first room' },
-    { key: 'lieNervous', step: 0.05, min: 0, max: 1, note: 'live · after it sulked' },
-    { key: 'lieInsistent', step: 0.05, min: 0, max: 1, note: 'live · after you doubted the truth' },
-    { key: 'tell', step: 0.25, min: 0, max: 2, note: 'live · body language, 0 = none' },
-    { key: 'crackChance', step: 0.05, min: 0, max: 1, note: 'live · a lie cracks when asked' },
-    { key: 'asksBeforeAnnoyed', step: 1, min: 1, max: 9, note: 'live' },
-    { key: 'inspectTime', step: 250, min: 250, max: 6000, note: 'ms · live' },
-    { key: 'patience', step: 500, min: 1000, max: 20000, note: 'ms · live' },
-    { key: 'walkSpeed', step: 0.1, min: 0.3, max: 3, note: 'live · you' },
-    { key: 'foxSpeed', step: 0.1, min: 0.3, max: 4, note: 'live · the fox' },
-    { key: 'foxGate', type: 'choice', options: ['random', '☾', '✶', '◆', '▲', '●', '■'], note: 'new game · the fox’s own gate' },
-    { key: 'doors', step: 1, min: 2, max: 6, note: 'next room · gates in each room' },
-    { key: 'toEscape', step: 1, min: 1, max: 9, note: 'live · gates to pass to get out' },
-    { key: 'lights', step: 1, min: 1, max: 9, note: 'on restart' }],
+    { key: 'foxGate', type: 'choice', options: ['random', '☾', '✶', '◆', '▲', '●', '■'], note: 'new game',
+      tr: 'Tilkinin kendi kapısı. random = her oyunda yeni simge. Yeni oyunda geçerli (RESTART).' },
+    { key: 'doors', step: 1, min: 2, max: 6, note: 'new game',
+      tr: 'Her odadaki kapı sayısı (2–6). Yeni oyunda geçerli (RESTART).' },
+    { key: 'toEscape', step: 1, min: 1, max: 9, note: 'live',
+      tr: 'Çıkmak için geçmen gereken doğru kapı sayısı.' },
+    { key: 'lights', step: 1, min: 1, max: 9, note: 'new game',
+      tr: 'Fener hakkı: kaç yanlış kapıda oyun biter. Yeni oyunda geçerli.' },
+    { key: 'lieCalm', step: 0.05, min: 0, max: 1, note: 'live',
+      tr: 'İlk odada yalan söyleme olasılığı (0 = hiç, 1 = her zaman).' },
+    { key: 'lieConfident', step: 0.05, min: 0, max: 1, note: 'live',
+      tr: 'Onu takip ettikten sonra yalan söyleme olasılığı.' },
+    { key: 'lieInsistent', step: 0.05, min: 0, max: 1, note: 'live',
+      tr: 'Doğruyu söylerken ona güvenmediğinde, inadına yalan söyleme olasılığı.' },
+    { key: 'lieNervous', step: 0.05, min: 0, max: 1, note: 'live',
+      tr: 'Küstükten sonraki odada yalan söyleme olasılığı.' },
+    { key: 'tell', step: 0.25, min: 0, max: 2, note: 'live',
+      tr: 'Yalan söylerken beden dilinin ne kadar belli olduğu (duruşu, bakışı). 0 = hiç ipucu yok.' },
+    { key: 'crackChance', step: 0.05, min: 0, max: 1, note: 'live',
+      tr: '“Emin misin?” diye sorunca yalanını itiraf etme olasılığı.' },
+    { key: 'asksBeforeAnnoyed', step: 1, min: 1, max: 9, note: 'live',
+      tr: 'Bir odada kaç sorudan sonra kırılıp cevap vermeyi bıraktığı.' },
+    { key: 'inspectTime', step: 250, min: 250, max: 6000, note: 'ms · live',
+      tr: 'Bir kapıyı incelemek için önünde durman gereken süre (milisaniye).' },
+    { key: 'patience', step: 500, min: 1000, max: 20000, note: 'ms · live',
+      tr: 'Tilkinin sabırsızlanıp sana yaklaşmadan önce beklediği süre (milisaniye).' },
+    { key: 'walkSpeed', step: 0.1, min: 0.3, max: 3, note: 'live',
+      tr: 'Senin yürüme hızın.' },
+    { key: 'foxSpeed', step: 0.1, min: 0.3, max: 4, note: 'live',
+      tr: 'Tilkinin yürüme hızı.' }],
   code: [
     '<span class="c">// 3) RULE: the fox reads every move as a reply</span>',
     '<span class="k">if</span> (obeyed) mood = <span class="s">\'confident\'</span>;   <span class="c">// it relaxes, lies more</span>',
@@ -126,11 +141,16 @@ window.OYUNLAR['02'] = {
     }
 
     function newRoom(first) {
-      const n = Math.max(2, Math.min(6, Math.round(D.doors)));
-      if (gates.length !== n) buildGates(n);
-      const others = SYMBOLS.filter((x) => x !== S.want).sort(() => Math.random() - 0.5);
-      const sym = [S.want, ...others.slice(0, n - 1)].sort(() => Math.random() - 0.5);   // tilkinin kapısı her odada var
-      gates.forEach((g, i) => { g.symbol = sym[i]; g.panel.material = ctx.toon('ink'); });
+      // Simgeler oyunun başında kapılara dağıtılır ve oyun boyunca yer değiştirmez
+      if (first) {
+        const n = Math.max(2, Math.min(6, Math.round(D.doors)));
+        if (gates.length !== n) buildGates(n);
+        const others = SYMBOLS.filter((x) => x !== S.want).sort(() => Math.random() - 0.5);
+        const sym = [S.want, ...others.slice(0, n - 1)].sort(() => Math.random() - 0.5);   // tilkinin kapısı da aralarında
+        gates.forEach((g, i) => { g.symbol = sym[i]; });
+      }
+      const n = gates.length;
+      gates.forEach((g) => { g.panel.material = ctx.toon('ink'); });
       const truth = Math.floor(Math.random() * n);
       const want = gates.findIndex((g) => g.symbol === S.want);
       const hurt = S.mood === 'hurt';
