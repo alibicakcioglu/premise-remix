@@ -11,13 +11,13 @@ You are lost in a clearing at night. A fox offers to show you the way out. It kn
 | Action | Pointer / touch | Keyboard |
 |---|---|---|
 | Walk | click on the ground | arrows / WASD |
-| Go to a gate | click a gate | `1` `2` `3` |
+| Go to a gate | click a gate | `1`–`6` |
 | Ask “are you sure?” | click the fox | `Q` |
 | Inspect a gate | stand still in front of it | stand still in front of it |
 | Choose | walk through a gate | walk through a gate |
 | Code / notes | CODE / NOTES tabs | `C` / `Shift+N` |
 
-Get through 4 gates before your lantern goes out (3 wrong gates).
+Get through 4 gates before your lantern goes out (3 wrong gates). In the CODE tab, `doors` sets how many gates each room has (2–6, from the next room) and `toEscape` how many you must pass.
 
 ## Where the premises live in the code (`script.js`)
 

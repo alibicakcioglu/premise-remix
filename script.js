@@ -34,13 +34,13 @@ window.OYUNLAR['02'] = {
   promise: 'Participation can be designed. Design the dialogue, not the message.',
   source: 'IMA Lab experiment 02 · Eye Field (engine, place and characters)',
   caption: 'The fox says it knows the way out.',
-  hint: 'click = walk · click the fox or Q = “are you sure?” · stand still at a gate = inspect · walk through a gate = choose · arrows / WASD = walk · 1 2 3 = go to gate · C code',
+  hint: 'click = walk · click the fox or Q = “are you sure?” · stand still at a gate = inspect · walk through a gate = choose · arrows / WASD = walk · 1–6 = go to gate · C code',
   anat: ['walk · ask · inspect', 'reply → mood', 'mood · memory', 'points · lies · sulks'], hot: 2,
-  hud: [['GATES', 'hGate'], ['LIGHT', 'hLight'], ['FOX', 'hMood', 'ghosts'], ['CAUGHT', 'hCaught']],
+  hud: [['PASSED', 'hGate'], ['LIGHT', 'hLight'], ['FOX', 'hMood', 'ghosts'], ['CAUGHT', 'hCaught']],
   design: {
     lieConfident: 0.85, lieCalm: 0.5, lieNervous: 0.2, lieInsistent: 0.95,
     tell: 1, crackChance: 0.35, asksBeforeAnnoyed: 2, inspectTime: 1500, patience: 6000,
-    walkSpeed: 1.1, foxSpeed: 1.8, gates: 4, lights: 3
+    walkSpeed: 1.1, foxSpeed: 1.8, doors: 3, toEscape: 4, lights: 3
   },
   knobs: [
     { key: 'lieConfident', step: 0.05, min: 0, max: 1, note: 'live · after you obey' },
@@ -54,7 +54,8 @@ window.OYUNLAR['02'] = {
     { key: 'patience', step: 500, min: 1000, max: 20000, note: 'ms · live' },
     { key: 'walkSpeed', step: 0.1, min: 0.3, max: 3, note: 'live · you' },
     { key: 'foxSpeed', step: 0.1, min: 0.3, max: 4, note: 'live · the fox' },
-    { key: 'gates', step: 1, min: 1, max: 9, note: 'on restart' },
+    { key: 'doors', step: 1, min: 2, max: 6, note: 'next room · gates in each room' },
+    { key: 'toEscape', step: 1, min: 1, max: 9, note: 'live · gates to pass to get out' },
     { key: 'lights', step: 1, min: 1, max: 9, note: 'on restart' }],
   code: [
     '<span class="c">// 3) RULE: the fox reads every move as a reply</span>',
@@ -73,22 +74,29 @@ window.OYUNLAR['02'] = {
   make(ctx) {
     const { THREE, D, group } = ctx;
     const Y = 0.08, R = 2.05;                       // zemin yüksekliği, yürünebilir yarıçap
-    const SYMBOLS = ['☾', '✶', '◆'], WANT = '☾';    // tilkinin kendi kapısı hep ☾
+    const SYMBOLS = ['☾', '✶', '◆', '▲', '●', '■'], WANT = '☾';   // tilkinin kendi kapısı hep ☾
     const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
     const V = (x, z, y = Y) => new THREE.Vector3(x, y, z);
 
-    // ---- kapılar: açıklığın arkasında yay üzerinde ----
-    const gates = [-0.62, 0, 0.62].map((ang, i) => {
-      const x = Math.sin(ang) * 1.45, z = -Math.cos(ang) * 1.45;
-      const g = new THREE.Group(); g.position.set(x, Y, z); g.rotation.y = Math.atan2(-x, -z) + Math.PI;
-      g.add(ctx.mesh(new THREE.BoxGeometry(0.07, 0.62, 0.07), ctx.toon('wood'), -0.24, 0.31, 0));
-      g.add(ctx.mesh(new THREE.BoxGeometry(0.07, 0.62, 0.07), ctx.toon('wood'), 0.24, 0.31, 0));
-      g.add(ctx.mesh(new THREE.BoxGeometry(0.6, 0.08, 0.09), ctx.toon('ink'), 0, 0.64, 0));
-      const panel = ctx.mesh(new THREE.BoxGeometry(0.41, 0.56, 0.02), ctx.toon('ink'), 0, 0.29, -0.02);
-      g.add(panel); group.add(g);
-      const toCenter = Math.hypot(x, z);
-      return { i, x, z, g, panel, front: V(x - (x / toCenter) * 0.38, z - (z / toCenter) * 0.38), symbol: '' };
-    });
+    // ---- kapılar: açıklığın arkasında yay üzerinde · sayısı DESIGN.doors (yeni odada uygulanır) ----
+    let gates = [];
+    function buildGates(n) {
+      gates.forEach((g) => group.remove(g.g));
+      const gap = n > 1 ? Math.min(0.62, 2.5 / (n - 1)) : 0;   // kapı çoğaldıkça aralık daralır
+      gates = Array.from({ length: n }, (_, i) => {
+        const ang = (i - (n - 1) / 2) * gap;
+        const x = Math.sin(ang) * 1.45, z = -Math.cos(ang) * 1.45;
+        const g = new THREE.Group(); g.position.set(x, Y, z); g.rotation.y = Math.atan2(-x, -z) + Math.PI;
+        g.add(ctx.mesh(new THREE.BoxGeometry(0.07, 0.62, 0.07), ctx.toon('wood'), -0.24, 0.31, 0));
+        g.add(ctx.mesh(new THREE.BoxGeometry(0.07, 0.62, 0.07), ctx.toon('wood'), 0.24, 0.31, 0));
+        g.add(ctx.mesh(new THREE.BoxGeometry(0.6, 0.08, 0.09), ctx.toon('ink'), 0, 0.64, 0));
+        const panel = ctx.mesh(new THREE.BoxGeometry(0.41, 0.56, 0.02), ctx.toon('ink'), 0, 0.29, -0.02);
+        g.add(panel); group.add(g);
+        const toCenter = Math.hypot(x, z);
+        return { i, x, z, g, panel, front: V(x - (x / toCenter) * 0.38, z - (z / toCenter) * 0.38), symbol: '' };
+      });
+      ctx.patch(group);
+    }
 
     // ---- karakterler ----
     const traveler = ctx.char('char.traveler'), you = traveler.root;
@@ -115,9 +123,11 @@ window.OYUNLAR['02'] = {
     }
 
     function newRoom(first) {
-      const sym = SYMBOLS.slice().sort(() => Math.random() - 0.5);
+      const n = Math.max(2, Math.min(6, Math.round(D.doors)));
+      if (gates.length !== n) buildGates(n);
+      const sym = SYMBOLS.slice(0, n).sort(() => Math.random() - 0.5);   // ☾ her odada var
       gates.forEach((g, i) => { g.symbol = sym[i]; g.panel.material = ctx.toon('ink'); });
-      const truth = Math.floor(Math.random() * 3);
+      const truth = Math.floor(Math.random() * n);
       const want = gates.findIndex((g) => g.symbol === WANT);
       const hurt = S.mood === 'hurt';
       // KURAL: tilki yalnız kendi kapısı çıkış değilse yalan söyler; olasılık ruh haline bağlı
@@ -130,7 +140,7 @@ window.OYUNLAR['02'] = {
       S.mem.rooms++;
       you.position.copy(V(0, 0.95)); you.rotation.y = Math.PI;
       fox.position.copy(V(0.45, 0.8)); fox.rotation.y = Math.PI;
-      ctx.text('hGate', S.passed + ' / ' + D.gates);
+      ctx.text('hGate', S.passed + ' / ' + D.toEscape);
     }
 
     const lieChance = () => ({ confident: D.lieConfident, calm: D.lieCalm, nervous: D.lieNervous, insistent: D.lieInsistent }[S.mood] ?? D.lieCalm);
@@ -189,7 +199,7 @@ window.OYUNLAR['02'] = {
       S.ended = true;
       const m = S.mem;
       ctx.overlay({ kick: won ? 'YOU GOT OUT' : 'YOUR LANTERN WENT OUT', title: won ? 'Out of the clearing' : 'Lost in the dark',
-        text: 'The fox always wanted the ' + WANT + ' gate. It lied ' + m.lies + ' times; you caught ' + m.caught + '. You followed it ' + m.obeyed +
+        text: 'The ' + WANT + ' gate was the fox’s own way out, not yours. It never lied about the other gates: it only lied by pointing at ' + WANT + ' when ' + WANT + ' was not the exit. It lied ' + m.lies + ' times; you caught ' + m.caught + '. You followed it ' + m.obeyed +
           ' times and asked “are you sure?” ' + m.asks + ' times. Its last mood: ' + S.mood + '.',
         cta: 'PLAY AGAIN' });
     }
@@ -216,7 +226,7 @@ window.OYUNLAR['02'] = {
 
       if (r.phase === 'result') {
         if (simT - r.resultT > 2.2) {
-          if (S.passed >= D.gates) return endGame(true);
+          if (S.passed >= D.toEscape) return endGame(true);
           if (S.lights <= 0) return endGame(false);
           newRoom(false);
         }
@@ -326,7 +336,7 @@ window.OYUNLAR['02'] = {
         const dir = { arrowup: 'up', w: 'up', arrowdown: 'down', s: 'down', arrowleft: 'left', a: 'left', arrowright: 'right', d: 'right' }[k];
         if (dir) { if (down) keys.add(dir); else keys.delete(dir); e.preventDefault(); return true; }
         if (!down) return false;
-        if (['1', '2', '3'].includes(k)) { onGate(Number(k) - 1); return true; }
+        if (/^[1-6]$/.test(k) && Number(k) <= gates.length) { onGate(Number(k) - 1); return true; }
         if (k === 'q') { ask(); return true; }
         return false;
       },
@@ -337,7 +347,7 @@ window.OYUNLAR['02'] = {
         you.visible = true;
         tags();
       },
-      hud() { return { hGate: S.passed + ' / ' + D.gates, hLight: '●'.repeat(Math.max(0, S.lights)) + '○'.repeat(Math.max(0, D.lights - S.lights)), hMood: S.mood, hCaught: S.mem.caught }; },
+      hud() { return { hGate: S.passed + ' / ' + D.toEscape, hLight: '●'.repeat(Math.max(0, S.lights)) + '○'.repeat(Math.max(0, D.lights - S.lights)), hMood: S.mood, hCaught: S.mem.caught }; },
       rule: () => 'mood ' + S.mood + ' → lie ' + Math.round((S.mood === 'hurt' ? 0 : lieChance()) * 100) + '%',
       caption() {
         if (!r) return 'The fox says it knows the way out.';
