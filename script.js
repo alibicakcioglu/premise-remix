@@ -40,7 +40,7 @@ window.OYUNLAR['02'] = {
   design: {
     lieConfident: 0.85, lieCalm: 0.5, lieNervous: 0.2, lieInsistent: 0.95,
     tell: 1, crackChance: 0.35, asksBeforeAnnoyed: 2, inspectTime: 1500, patience: 6000,
-    walkSpeed: 1.1, foxSpeed: 1.8, doors: 3, toEscape: 4, lights: 3
+    walkSpeed: 1.1, foxSpeed: 1.8, doors: 3, toEscape: 5, lights: 3, foxGate: 'random'
   },
   knobs: [
     { key: 'lieConfident', step: 0.05, min: 0, max: 1, note: 'live · after you obey' },
@@ -54,6 +54,7 @@ window.OYUNLAR['02'] = {
     { key: 'patience', step: 500, min: 1000, max: 20000, note: 'ms · live' },
     { key: 'walkSpeed', step: 0.1, min: 0.3, max: 3, note: 'live · you' },
     { key: 'foxSpeed', step: 0.1, min: 0.3, max: 4, note: 'live · the fox' },
+    { key: 'foxGate', type: 'choice', options: ['random', '☾', '✶', '◆', '▲', '●', '■'], note: 'new game · the fox’s own gate' },
     { key: 'doors', step: 1, min: 2, max: 6, note: 'next room · gates in each room' },
     { key: 'toEscape', step: 1, min: 1, max: 9, note: 'live · gates to pass to get out' },
     { key: 'lights', step: 1, min: 1, max: 9, note: 'on restart' }],
@@ -74,7 +75,7 @@ window.OYUNLAR['02'] = {
   make(ctx) {
     const { THREE, D, group } = ctx;
     const Y = 0.08, R = 2.05;                       // zemin yüksekliği, yürünebilir yarıçap
-    const SYMBOLS = ['☾', '✶', '◆', '▲', '●', '■'], WANT = '☾';   // tilkinin kendi kapısı hep ☾
+    const SYMBOLS = ['☾', '✶', '◆', '▲', '●', '■'];   // tilkinin kendi kapısı: her oyunun başında DESIGN.foxGate'e göre seçilir
     const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
     const V = (x, z, y = Y) => new THREE.Vector3(x, y, z);
 
@@ -117,7 +118,9 @@ window.OYUNLAR['02'] = {
     const keys = new Set();
 
     function newGame() {
-      S = { passed: 0, lights: D.lights, mood: 'calm', ended: false,
+      // tilkinin kendi kapısı bu oyun boyunca sabit, yeni oyunda yeniden seçilir
+      const want = SYMBOLS.includes(D.foxGate) ? D.foxGate : SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+      S = { passed: 0, lights: D.lights, mood: 'calm', ended: false, want,
             mem: { obeyed: 0, defied: 0, lies: 0, caught: 0, asks: 0, rooms: 0 } };
       newRoom(true);
     }
@@ -125,10 +128,11 @@ window.OYUNLAR['02'] = {
     function newRoom(first) {
       const n = Math.max(2, Math.min(6, Math.round(D.doors)));
       if (gates.length !== n) buildGates(n);
-      const sym = SYMBOLS.slice(0, n).sort(() => Math.random() - 0.5);   // ☾ her odada var
+      const others = SYMBOLS.filter((x) => x !== S.want).sort(() => Math.random() - 0.5);
+      const sym = [S.want, ...others.slice(0, n - 1)].sort(() => Math.random() - 0.5);   // tilkinin kapısı her odada var
       gates.forEach((g, i) => { g.symbol = sym[i]; g.panel.material = ctx.toon('ink'); });
       const truth = Math.floor(Math.random() * n);
-      const want = gates.findIndex((g) => g.symbol === WANT);
+      const want = gates.findIndex((g) => g.symbol === S.want);
       const hurt = S.mood === 'hurt';
       // KURAL: tilki yalnız kendi kapısı çıkış değilse yalan söyler; olasılık ruh haline bağlı
       const lied = !hurt && want !== truth && Math.random() < lieChance();
@@ -199,7 +203,7 @@ window.OYUNLAR['02'] = {
       S.ended = true;
       const m = S.mem;
       ctx.overlay({ kick: won ? 'YOU GOT OUT' : 'YOUR LANTERN WENT OUT', title: won ? 'Out of the clearing' : 'Lost in the dark',
-        text: 'The ' + WANT + ' gate was the fox’s own way out, not yours. It never lied about the other gates: it only lied by pointing at ' + WANT + ' when ' + WANT + ' was not the exit. It lied ' + m.lies + ' times; you caught ' + m.caught + '. You followed it ' + m.obeyed +
+        text: 'This time the fox wanted the ' + S.want + ' gate: its own way out, not yours. It never lied about the other gates; it only lied by pointing at ' + S.want + ' when ' + S.want + ' was not the exit. Next game it may want another gate. It lied ' + m.lies + ' times; you caught ' + m.caught + '. You followed it ' + m.obeyed +
           ' times and asked “are you sure?” ' + m.asks + ' times. Its last mood: ' + S.mood + '.',
         cta: 'PLAY AGAIN' });
     }
