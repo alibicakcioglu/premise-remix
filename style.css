@@ -525,3 +525,16 @@ body[data-tab="code"] .card.ledger { display: none !important; }
 .ledger tr.lie td, .ledger tr.lie td i { color: var(--accent); }
 .ledger td.empty { color: var(--mute); font-size: 17px; }
 .ledger .key { margin: 6px 0 0; font: 15px 'VT323', monospace; color: var(--mute); }
+
+/* The Guide · telefon: defter alta iner ve kapalı başlar (başlığa dokun), sayaçlar küçülür */
+@media (max-width: 600px) {
+  body.ingame .card.ledger { top: auto !important; bottom: calc(var(--dock-height) + 20px); left: 8px; right: auto; max-width: calc(100vw - 16px); cursor: pointer; }
+  .ledger:not(.open) #ledgerList { display: none; }
+  .ledger small { margin-bottom: 0; }
+  .ledger small::after { content: '  ▸ tap'; }
+  .ledger.open small::after { content: '  ▾'; }
+  .ledger.open small { margin-bottom: 4px; }
+  .hud div { padding: 5px 6px; }
+  .hud small { font-size: 8px; }
+  .hud b { font-size: 20px; white-space: nowrap; }
+}

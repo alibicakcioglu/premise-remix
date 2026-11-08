@@ -27,7 +27,7 @@ Get through 5 gates before your lantern goes out (3 wrong gates). The WOLF LOG o
   - **calm** (start, or after you doubted the truth) → `lieCalm`
   - **confident** (after you followed it) → `lieConfident`: trust it and it uses you
   - **ashamed** (after you caught a lie) → `lieAshamed`, 0 by default: catch it and it doesn't dare to lie
-- Asking “are you sure?” makes a lying wolf hesitate, and sometimes confess (`crackChance`). Inspecting a gate reveals “a breeze…” (exit) or “silence.”; a lying wolf steps in front of the real exit.
+- Asking “are you sure?” makes a lying wolf hesitate (“…”) before it insists. If you ask more than `asksBeforeAnnoyed` times in a room it gets annoyed, and following it then does not make it confident. Inspecting a gate reveals “a breeze…” (exit) or “silence.”; a lying wolf steps in front of the real exit.
 
 ## Where the premises live in the code (`script.js`)
 

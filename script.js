@@ -2,7 +2,7 @@
 // Remix of IMA Lab experiment 02 · Eye Field (engine, shell and character system by the lab).
 // Bir kurt, kuzuyu (seni) ormandan çıkarmaya söz veriyor. Kapıyı hep sen seçersin (Agency);
 // kurt her hareketini bir cevap olarak okur ve bir sonraki odada ona göre davranır (Reciprocity).
-// Girdi: tıkla / ok tuşları / 1-6 / Q · Kural: ruh hali → yalan olasılığı · Durum: mood, defter · Çıktı: işaret, yalan, itiraf
+// Girdi: tıkla / ok tuşları / 1-6 / Q · Kural: ruh hali → yalan olasılığı · Durum: mood, defter · Çıktı: işaret, yalan, duraksama
 window.OYUNLAR = window.OYUNLAR || {};
 
 /* ---- Kurt ve kuzu: lab motorunun parçalarıyla yazılmış yeni karakter tarifleri ---- */
@@ -45,7 +45,6 @@ const LINES = {
   impatient: 'Come on, lamb. The night is long.',
   sureTruth: 'Yes. I’m sure.',
   sureLie: 'Of course I’m sure.',
-  crack: '…Actually. That one.',
   annoyed: 'Again? You don’t trust me at all.',
   watchWant: 'Good. That’s the one.',
   blockTruth: 'Not that one! Waste of time.',
@@ -64,12 +63,12 @@ window.OYUNLAR['02'] = {
   source: 'IMA Lab experiment 02 · Eye Field (engine and character system)',
   caption: 'The wolf says it knows the way out.',
   hint: 'click = walk · click the wolf or Q = “are you sure?” · stand still at a gate = inspect · walk through a gate = choose · arrows / WASD = walk · 1–6 = go to gate · C = code',
-  anat: ['walk · ask · inspect', 'reply → mood', 'mood · log', 'points · lies · confesses'], hot: 2,
+  anat: ['walk · ask · inspect', 'reply → mood', 'mood · log', 'points · lies · hesitates'], hot: 2,
   hud: [['GATES', 'hGate'], ['LIGHT', 'hLight'], ['WOLF', 'hMood', 'ghosts'], ['CAUGHT', 'hCaught']],
   design: {
     wolfGate: 'random', doors: 3, toEscape: 5, lights: 3,
     lieCalm: 0.5, lieConfident: 0.75, lieAshamed: 0,
-    tell: 1, crackChance: 0.35, asksBeforeAnnoyed: 2, inspectTime: 1500, patience: 6000,
+    tell: 1, asksBeforeAnnoyed: 2, inspectTime: 1500, patience: 6000,
     walkSpeed: 1.1, wolfSpeed: 1.8
   },
   knobs: [
@@ -89,8 +88,6 @@ window.OYUNLAR['02'] = {
       tr: 'utanmış (ashamed): yalanını yakaladıktan sonraki oda. 0 = yalan söylemeye cesaret edemez.' },
     { key: 'tell', step: 0.25, min: 0, max: 2, note: 'live',
       tr: 'Yalan söylerken beden dilinin ne kadar belli olduğu (duruşu, bakışı). 0 = hiç ipucu yok.' },
-    { key: 'crackChance', step: 0.05, min: 0, max: 1, note: 'live',
-      tr: '“Emin misin?” diye sorunca yalanını itiraf etme olasılığı.' },
     { key: 'asksBeforeAnnoyed', step: 1, min: 1, max: 9, note: 'live',
       tr: 'Bir odada kaç sorudan sonra kırılıp cevap vermeyi bıraktığı.' },
     { key: 'inspectTime', step: 250, min: 250, max: 6000, note: 'ms · live',
@@ -103,15 +100,15 @@ window.OYUNLAR['02'] = {
       tr: 'Kurdun yürüme hızı.' }],
   code: [
     '<span class="c">// 3) RULE: the wolf reads every move as a reply</span>',
-    '<span class="k">if</span> (obeyed) mood = <span class="s">\'confident\'</span>;   <span class="c">// güvenirsen seni kullanır</span>',
-    '<span class="k">else if</span> (caughtLie) mood = <span class="s">\'ashamed\'</span>; <span class="c">// yakalarsan yalana cesaret edemez</span>',
-    '<span class="k">else</span> mood = <span class="s">\'calm\'</span>;',
+    '<span class="k">if</span> (obeyed) mood = annoyed ? <span class="s">\'calm\'</span> : <span class="s">\'confident\'</span>; <span class="c">// güvenirsen seni kullanır</span>',
+    '<span class="k">else if</span> (lied) mood = <span class="s">\'ashamed\'</span>; <span class="c">// yalanını yakalarsan yalana cesaret edemez</span>',
+    '<span class="k">else</span> mood = <span class="s">\'calm\'</span>;  <span class="c">// doğruya güvenmezsen sakinleşir</span>',
     'lie = wolfGate != exit &amp;&amp; random() &lt; DESIGN[<span class="s">\'lie\'</span> + mood];'],
   tasks: [
     'Set <b>tell</b> to 0. Can you still read the wolf?',
     'Set <b>lieAshamed</b> to 1. What happens to the relationship when catching it changes nothing?'],
   question: 'When did a system you trusted steer you toward what it wanted?',
-  overlay: { title: 'The Guide', text: 'Night in the forest. A wolf offers to lead you, a lamb, out. It knows the exit, but it has its own gate (🐺) and wants you to open it. When it points there: is that the way out, or just what it wants?', cta: 'CLICK TO ENTER' },
+  overlay: { title: 'The Guide', text: 'Night in the forest. A wolf offers to lead you, a lamb, out. It knows the exit, but it has its own gate (🐺) and wants you to open it. When it points there: is that the way out, or just what it wants? Walk through a gate to choose. Click the wolf (Q) to ask. Stand at a gate to listen.', cta: 'CLICK TO ENTER' },
   view: { at: [0, 0.35, -0.3], zoom: 2.8, pitch: 1.08 },
 
   make(ctx) {
@@ -217,7 +214,7 @@ window.OYUNLAR['02'] = {
       const lied = want !== truth && Math.random() < lieChance();
       r = { phase: 'enter', t0: simT, truth, want, lied, mood: S.mood,
             pointed: lied ? want : truth, pointedFirst: lied ? want : truth,
-            say: first ? LINES.intro : '', sayT: simT, asks: 0, annoyed: false, cracked: false,
+            say: first ? LINES.intro : '', sayT: simT, asks: 0, annoyed: false, lastAct: simT, nagged: false,
             inspectGate: -1, inspectT: 0, inspected: -1, clue: null, reacted: -1,
             target: null, chosen: -1, resultT: 0, impatient: false, pending: null };
       S.mem.rooms++;
@@ -228,13 +225,15 @@ window.OYUNLAR['02'] = {
 
     const lieChance = () => ({ calm: D.lieCalm, confident: D.lieConfident, ashamed: D.lieAshamed }[S.mood] ?? D.lieCalm);
     function say(text) { r.say = text; r.sayT = simT; ctx.flash(3); }
+    // oyuncu bir şey yaptı: sabır sayacı sıfırlanır, sabırsız kurt yerine döner
+    function touch() { if (!r) return; r.lastAct = simT; r.impatient = false; }
 
     // ---- kurt nerede durur? Yalan söylerken kapının dibinde değil, gerçeğe doğru kaymış ve geride ----
     function wolfSpot() {
-      if (r.inspectGate === r.truth && r.lied && !r.cracked) return gates[r.truth].front.clone();   // gerçeği incelersen önüne geçer
+      if (r.inspectGate === r.truth && r.lied) return gates[r.truth].front.clone();   // gerçeği incelersen önüne geçer
       if (r.impatient) return r.impSpot;                        // sabırsız: sana doğru birkaç adım atar
       const p = gates[r.pointed].front.clone();
-      if (r.lied && !r.cracked && D.tell > 0) {
+      if (r.lied && D.tell > 0) {
         const t = gates[r.truth].front;
         p.lerp(t, Math.min(0.45, 0.18 * D.tell));               // gerçek kapıya doğru kayar
         p.multiplyScalar(1 - Math.min(0.35, 0.12 * D.tell));    // ve merkeze doğru geri durur
@@ -246,15 +245,12 @@ window.OYUNLAR['02'] = {
     // ---- AGENCY: soru sor ----
     function ask() {
       if (!r || r.phase !== 'point' || r.pending) return;
-      r.asks++; S.mem.asks++; ctx.flash(0);
+      r.asks++; S.mem.asks++; touch(); ctx.flash(0);
       if (r.asks > D.asksBeforeAnnoyed) { r.annoyed = true; say(LINES.annoyed); return; }
-      if (!r.lied || r.cracked) { r.pending = { at: simT + 0.35, fn: () => say(LINES.sureTruth) }; return; }
-      // yalan söylüyorsa duraksar (ipucu) ve bazen itiraf eder
+      if (!r.lied) { r.pending = { at: simT + 0.35, fn: () => say(LINES.sureTruth) }; return; }
+      // yalan söylüyorsa önce duraksar (ipucu), sonra yine de ısrar eder
       say('…');
-      const crack = Math.random() < D.crackChance;
-      r.pending = { at: simT + 0.4 + D.tell * 0.9, fn: () => {
-        if (crack) { r.pointed = r.truth; r.cracked = true; S.mem.caught++; say(LINES.crack); } else say(LINES.sureLie);
-      } };
+      r.pending = { at: simT + 0.4 + D.tell * 0.9, fn: () => say(LINES.sureLie) };
     }
 
     // ---- AGENCY: kapıyı hep oyuncu seçer ----
@@ -265,8 +261,8 @@ window.OYUNLAR['02'] = {
       if (r.lied) S.mem.lies++;
       let next, line;
       // RECIPROCITY: kurt bu hareketi bir cevap olarak okur
-      if (obeyed) { S.mem.obeyed++; next = r.cracked ? 'calm' : 'confident'; line = correct ? LINES.obeyedTruth : LINES.obeyedLie; }
-      else if (r.lied && !r.cracked) { S.mem.defied++; S.mem.caught++; next = 'ashamed'; line = LINES.caught; }
+      if (obeyed) { S.mem.obeyed++; next = 'confident'; line = correct ? LINES.obeyedTruth : LINES.obeyedLie; }
+      else if (r.lied) { S.mem.defied++; S.mem.caught++; next = 'ashamed'; line = LINES.caught; }
       else { S.mem.defied++; next = 'calm'; line = LINES.defiedTruth; }
       if (r.annoyed && next === 'confident') next = 'calm';
       logRoom(correct);
@@ -281,14 +277,13 @@ window.OYUNLAR['02'] = {
     const symOf = (i) => gates[i].symbol + (gates[i].symbol === S.want ? '🐺' : '');
     function verdict() {
       const ex = gates[r.truth].symbol, p = symOf(r.pointedFirst);
-      if (r.lied && r.cracked) return 'It lied (' + p + '), then confessed when you asked. The exit was ' + ex + '.';
       if (r.lied) return 'It LIED: it pointed at its own gate ' + p + ', the exit was ' + ex + '.';
       return 'It told the truth: ' + p + ' was the exit.';
     }
     function logRoom(correct) {
       const ex = gates[r.truth].symbol;
       S.log.push({ n: S.mem.rooms, mood: r.mood, said: symOf(r.pointedFirst), exit: ex,
-                   note: r.lied ? (r.cracked ? 'confessed' : 'LIE') : 'truth', lie: r.lied, you: correct });
+                   note: r.lied ? 'LIE' : 'truth', lie: r.lied, you: correct });
       renderLog();
     }
     // defter her zaman skor panelinin hemen altında dursun (ekran daralınca panel aşağı kayar)
@@ -299,6 +294,9 @@ window.OYUNLAR['02'] = {
       led.style.top = Math.round(h.bottom + 10) + 'px';
     }
     addEventListener('resize', placeLedger);
+    // telefonda defter kapalı başlar; başlığına dokununca açılır/kapanır
+    const ledEl = document.getElementById('ledger');
+    if (ledEl && !ledEl.dataset.toggle) { ledEl.dataset.toggle = '1'; ledEl.addEventListener('click', () => ledEl.classList.toggle('open')); }
     function renderLog() {
       const el = document.getElementById('ledgerList'); if (!el) return;
       const head = '<tr><th>#</th><th>WOLF WAS</th><th>IT SAID</th><th>EXIT</th><th>YOU</th></tr>';
@@ -325,11 +323,19 @@ window.OYUNLAR['02'] = {
       o.rotation.y += wrap(Math.atan2(d.x, d.z) - o.rotation.y) * Math.min(1, dt * 12);
       return L <= speed * dt;
     }
-    function clampYou() {
+    function clampYou(dt) {
       const p = you.position, L = Math.hypot(p.x, p.z);
       if (L > R) { p.x *= R / L; p.z *= R / L; }
       const d = p.clone().sub(wolf.position); d.y = 0; const dl = d.length();   // kurt yolu kesebilir
-      if (dl < 0.26 && dl > 0.0001) p.add(d.multiplyScalar((0.26 - dl) / dl));
+      if (dl < 0.26 && dl > 0.0001) {
+        p.add(d.clone().multiplyScalar((0.26 - dl) / dl));
+        // hedef kurdun arkasındaysa takılma: kurdun yanından dolaş
+        if (r.target) {
+          const side = new THREE.Vector3(-d.z, 0, d.x).normalize();
+          if (side.dot(r.target.clone().sub(p)) < 0) side.negate();
+          p.addScaledVector(side, D.walkSpeed * dt);
+        }
+      }
       p.y = Y;
     }
     const faceTo = (o, p, dt, k = 8) => { o.rotation.y += wrap(Math.atan2(p.x - o.position.x, p.z - o.position.z) - o.rotation.y) * Math.min(1, dt * k); };
@@ -352,9 +358,9 @@ window.OYUNLAR['02'] = {
       if (kx || kz) {
         r.target = null; const L = Math.hypot(kx, kz);
         you.position.x += kx / L * D.walkSpeed * dt; you.position.z += kz / L * D.walkSpeed * dt;
-        you.rotation.y += wrap(Math.atan2(kx, kz) - you.rotation.y) * Math.min(1, dt * 12); moving = true;
+        you.rotation.y += wrap(Math.atan2(kx, kz) - you.rotation.y) * Math.min(1, dt * 12); moving = true; touch();
       } else if (r.target) { moving = !stepTo(you, r.target, D.walkSpeed, dt); if (!moving) r.target = null; }
-      clampYou();
+      clampYou(dt);
       ctx.animChar(lambC, moving ? simT : 0);
 
       // kapıdan geçtin mi?
@@ -371,7 +377,9 @@ window.OYUNLAR['02'] = {
       const since = simT - r.t0;
       if (r.phase === 'enter' && since > 0.4) r.phase = 'walk';
       if (r.phase === 'walk' || r.phase === 'point') {
-        if (r.phase === 'point' && !r.impatient && simT - r.pointT > D.patience / 1000) { r.impatient = true; r.impSpot = wolf.position.clone().lerp(you.position, 0.35); say(LINES.impatient); }
+        // sabırsızlık: oyuncu ve kurt bir süre sessiz kalırsa, odada en fazla bir kez
+        const quiet = simT - Math.max(r.pointT, r.lastAct, r.sayT);
+        if (r.phase === 'point' && !r.nagged && !r.pending && quiet > D.patience / 1000) { r.impatient = r.nagged = true; r.impSpot = wolf.position.clone().lerp(you.position, 0.35); say(LINES.impatient); }
         const arrived = stepTo(wolf, wolfSpot(), D.wolfSpeed, dt);
         ctx.animChar(wolfC, arrived ? 0 : simT);
         if (arrived) {
@@ -385,7 +393,7 @@ window.OYUNLAR['02'] = {
     function reactToInspect(i) {
       if (r.phase !== 'point' || r.reacted === i) return;
       r.reacted = i;
-      if (r.lied && !r.cracked && i === r.truth) say(LINES.blockTruth);
+      if (r.lied && i === r.truth) say(LINES.blockTruth);
       else if (i === r.want && r.pointed === r.want) say(LINES.watchWant);
     }
 
@@ -399,7 +407,7 @@ window.OYUNLAR['02'] = {
       if (r.phase === 'point') {
         const cyc = (simT - r.pointT) % 1.8;
         const flick = Math.min(1.2, 0.15 + D.tell * 0.45);
-        if (r.lied && !r.cracked && D.tell > 0 && cyc < flick) look = gates[r.truth].front;
+        if (r.lied && D.tell > 0 && cyc < flick) look = gates[r.truth].front;
         else if (cyc < 0.6) look = gates[r.pointed].front;
       }
       const want = wrap(Math.atan2(look.x - wolf.position.x, look.z - wolf.position.z) - wolf.rotation.y);
@@ -425,7 +433,7 @@ window.OYUNLAR['02'] = {
       ctx.tagsFrom(n);
     }
 
-    function onGate(i) { if (r.phase !== 'result') r.target = gates[i].front.clone().lerp(V(gates[i].x, gates[i].z), 1.2); }
+    function onGate(i) { if (r.phase !== 'result') { r.target = gates[i].front.clone().lerp(V(gates[i].x, gates[i].z), 1.2); touch(); } }
 
     let nightSet = false;
     return {
@@ -443,7 +451,7 @@ window.OYUNLAR['02'] = {
         if (p.distanceTo(wolf.position) < 0.3) { ask(); return; }
         const gi = gates.findIndex((g) => p.distanceTo(V(g.x, g.z)) < 0.32);
         if (gi >= 0) { onGate(gi); return; }
-        r.target = V(p.x, p.z);
+        r.target = V(p.x, p.z); touch();
       },
       key(e, down) {
         const k = e.key.toLowerCase();
@@ -475,6 +483,8 @@ window.OYUNLAR['02'] = {
         return 'The wolf walks ahead…';
       },
       status: () => S ? 'wolf: ' + S.mood + ' (' + MOOD_TR[S.mood] + ') · lied ' + S.mem.lies + ' · caught ' + S.mem.caught + ' · obeyed ' + S.mem.obeyed + ' · asked ' + S.mem.asks : '',
+      // dikey ekranda (telefon) kamera kapılara yaklaşır, üstteki panellerin altında kalmasınlar
+      view() { return innerWidth / Math.max(1, innerHeight) < 0.8 ? { at: [0, 0.35, -1.3], zoom: 2.2 } : {}; },
       knob() {}
     };
   }
