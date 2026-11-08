@@ -12,13 +12,12 @@ Night in the forest. A wolf offers to lead you, a lamb, out. It knows which gate
 |---|---|---|
 | Walk | click on the ground | arrows / WASD |
 | Go to a gate | click a gate | `1`–`6` |
-| Ask “are you sure?” | click the wolf | `Q` |
-| Inspect a gate | stand still in front of it | stand still in front of it |
+| Listen at a gate | stand still in front of it | stand still in front of it |
 | Choose | walk through a gate | walk through a gate |
 | Design parameters (with Turkish notes) | CODE tab | `C` |
 | Day / night | DAY / NIGHT button | – |
 
-Get through 5 gates before your lantern goes out (3 wrong gates). The WOLF LOG on the right records every room: the wolf's mood, what it said, the real exit, and whether you were right.
+Get through 5 gates before your lantern goes out (4 wrong gates). The WOLF LOG on the right records every room: the wolf's mood, what it said, the real exit, and whether you were right.
 
 ## The rules
 
@@ -27,12 +26,12 @@ Get through 5 gates before your lantern goes out (3 wrong gates). The WOLF LOG o
   - **calm** (start, or after you doubted the truth) → `lieCalm`
   - **confident** (after you followed it) → `lieConfident`: trust it and it uses you
   - **ashamed** (after you caught a lie) → `lieAshamed`, 0 by default: catch it and it doesn't dare to lie
-- Asking “are you sure?” makes a lying wolf hesitate (“…”) before it insists. If you ask more than `asksBeforeAnnoyed` times in a room it gets annoyed, and following it then does not make it confident. Inspecting a gate reveals “a breeze…” (exit) or “silence.”; a lying wolf steps in front of the real exit.
+- Listening at a gate (stand still in front of it, once per room) reveals “a breeze…” (exit) or “silence.”; a lying wolf steps in front of the real exit.
 
 ## Where the premises live in the code (`script.js`)
 
-- **Agency:** `ask()`, the inspection block in `update()`, and `choose()`. The player can follow, question, investigate, or defy; the gate is always the player's choice.
-- **Reciprocity:** `choose()` reads the player's move as a reply and sets the wolf's next `mood`. `newRoom()` turns that mood into a lie probability. `ask()` and `reactToInspect()` make the wolf answer within a room.
+- **Agency:** the inspection block in `update()` and `choose()`. The player can follow, listen at a gate, or defy; the gate is always the player's choice.
+- **Reciprocity:** `choose()` reads the player's move as a reply and sets the wolf's next `mood`. `newRoom()` turns that mood into a lie probability. `reactToInspect()` makes the wolf answer within a room.
 - **Feedback for learning:** `verdict()` and the WOLF LOG (`logRoom()`, `renderLog()`).
 - Body language: `wolfSpot()` and `animateHead()`, scaled by `DESIGN.tell`.
 - All numbers are in `design` / `knobs` at the top of `script.js` and can be changed live in the **CODE** tab. The wolf's lines are in `LINES`.

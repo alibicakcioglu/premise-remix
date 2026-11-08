@@ -2,7 +2,7 @@
 // Remix of IMA Lab experiment 02 · Eye Field (engine, shell and character system by the lab).
 // Bir kurt, kuzuyu (seni) ormandan çıkarmaya söz veriyor. Kapıyı hep sen seçersin (Agency);
 // kurt her hareketini bir cevap olarak okur ve bir sonraki odada ona göre davranır (Reciprocity).
-// Girdi: tıkla / ok tuşları / 1-6 / Q · Kural: ruh hali → yalan olasılığı · Durum: mood, defter · Çıktı: işaret, yalan, duraksama
+// Girdi: tıkla / ok tuşları / 1-6 · Kural: ruh hali → yalan olasılığı · Durum: mood, defter · Çıktı: işaret, yalan
 window.OYUNLAR = window.OYUNLAR || {};
 
 /* ---- Kurt ve kuzu: lab motorunun parçalarıyla yazılmış yeni karakter tarifleri ---- */
@@ -43,9 +43,6 @@ const LINES = {
   pointConfident: 'This one, as always.',
   pointAshamed: '…Fine. This one. No tricks.',
   impatient: 'Come on, lamb. The night is long.',
-  sureTruth: 'Yes. I’m sure.',
-  sureLie: 'Of course I’m sure.',
-  annoyed: 'Again? You don’t trust me at all.',
   watchWant: 'Good. That’s the one.',
   blockTruth: 'Not that one! Waste of time.',
   obeyedTruth: 'See? We make a good team.',
@@ -62,13 +59,13 @@ window.OYUNLAR['02'] = {
   promise: 'Participation can be designed. Design the dialogue, not the message.',
   source: 'IMA Lab experiment 02 · Eye Field (engine and character system)',
   caption: 'The wolf says it knows the way out.',
-  hint: 'click = walk · click the wolf or Q = “are you sure?” · stand still at a gate = inspect · walk through a gate = choose · arrows / WASD = walk · 1–6 = go to gate · C = code',
-  anat: ['walk · ask · inspect', 'reply → mood', 'mood · log', 'points · lies · hesitates'], hot: 2,
+  hint: 'click = walk · stand still at a gate = listen for the exit · walk through a gate = choose · arrows / WASD = walk · 1–6 = go to gate · C = code',
+  anat: ['walk · listen · choose', 'reply → mood', 'mood · log', 'points · lies'], hot: 2,
   hud: [['GATES', 'hGate'], ['LIGHT', 'hLight'], ['WOLF', 'hMood', 'ghosts'], ['CAUGHT', 'hCaught']],
   design: {
-    wolfGate: 'random', doors: 3, toEscape: 5, lights: 3,
+    wolfGate: 'random', doors: 3, toEscape: 5, lights: 4,
     lieCalm: 0.5, lieConfident: 0.75, lieAshamed: 0,
-    tell: 1, asksBeforeAnnoyed: 2, inspectTime: 1500, patience: 6000,
+    tell: 1, inspectTime: 1000, patience: 6000,
     walkSpeed: 1.1, wolfSpeed: 1.8
   },
   knobs: [
@@ -88,8 +85,6 @@ window.OYUNLAR['02'] = {
       tr: 'utanmış (ashamed): yalanını yakaladıktan sonraki oda. 0 = yalan söylemeye cesaret edemez.' },
     { key: 'tell', step: 0.25, min: 0, max: 2, note: 'live',
       tr: 'Yalan söylerken beden dilinin ne kadar belli olduğu (duruşu, bakışı). 0 = hiç ipucu yok.' },
-    { key: 'asksBeforeAnnoyed', step: 1, min: 1, max: 9, note: 'live',
-      tr: 'Bir odada kaç sorudan sonra kırılıp cevap vermeyi bıraktığı.' },
     { key: 'inspectTime', step: 250, min: 250, max: 6000, note: 'ms · live',
       tr: 'Bir kapıyı incelemek için önünde durman gereken süre (milisaniye).' },
     { key: 'patience', step: 500, min: 1000, max: 20000, note: 'ms · live',
@@ -100,7 +95,7 @@ window.OYUNLAR['02'] = {
       tr: 'Kurdun yürüme hızı.' }],
   code: [
     '<span class="c">// 3) RULE: the wolf reads every move as a reply</span>',
-    '<span class="k">if</span> (obeyed) mood = annoyed ? <span class="s">\'calm\'</span> : <span class="s">\'confident\'</span>; <span class="c">// güvenirsen seni kullanır</span>',
+    '<span class="k">if</span> (obeyed) mood = <span class="s">\'confident\'</span>; <span class="c">// güvenirsen seni kullanır</span>',
     '<span class="k">else if</span> (lied) mood = <span class="s">\'ashamed\'</span>; <span class="c">// yalanını yakalarsan yalana cesaret edemez</span>',
     '<span class="k">else</span> mood = <span class="s">\'calm\'</span>;  <span class="c">// doğruya güvenmezsen sakinleşir</span>',
     'lie = wolfGate != exit &amp;&amp; random() &lt; DESIGN[<span class="s">\'lie\'</span> + mood];'],
@@ -108,7 +103,7 @@ window.OYUNLAR['02'] = {
     'Set <b>tell</b> to 0. Can you still read the wolf?',
     'Set <b>lieAshamed</b> to 1. What happens to the relationship when catching it changes nothing?'],
   question: 'When did a system you trusted steer you toward what it wanted?',
-  overlay: { title: 'The Guide', text: 'Night in the forest. A wolf offers to lead you, a lamb, out. It knows the exit, but it has its own gate (🐺) and wants you to open it. When it points there: is that the way out, or just what it wants? Walk through a gate to choose. Click the wolf (Q) to ask. Stand at a gate to listen.', cta: 'CLICK TO ENTER' },
+  overlay: { title: 'The Guide', text: 'Night in the forest. A wolf offers to lead you, a lamb, out. It knows the exit, but it has its own gate (🐺) and wants you to open it. When it points there: is that the way out, or just what it wants? Stand at a gate to listen for the exit. Walk through a gate to choose.', cta: 'CLICK TO ENTER' },
   view: { at: [0, 0.35, -0.3], zoom: 2.8, pitch: 1.08 },
 
   make(ctx) {
@@ -192,7 +187,7 @@ window.OYUNLAR['02'] = {
       // kurdun kendi kapısı bu oyun boyunca sabit ve görünür (🐺), yeni oyunda yeniden seçilir
       const want = SYMBOLS.includes(D.wolfGate) ? D.wolfGate : SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
       S = { passed: 0, lights: D.lights, mood: 'calm', ended: false, want,
-            mem: { obeyed: 0, defied: 0, lies: 0, caught: 0, asks: 0, rooms: 0 }, log: [] };
+            mem: { obeyed: 0, defied: 0, lies: 0, caught: 0, rooms: 0 }, log: [] };
       renderLog();
       newRoom(true);
     }
@@ -214,7 +209,7 @@ window.OYUNLAR['02'] = {
       const lied = want !== truth && Math.random() < lieChance();
       r = { phase: 'enter', t0: simT, truth, want, lied, mood: S.mood,
             pointed: lied ? want : truth, pointedFirst: lied ? want : truth,
-            say: first ? LINES.intro : '', sayT: simT, asks: 0, annoyed: false, lastAct: simT, nagged: false,
+            say: first ? LINES.intro : '', sayT: simT, lastAct: simT, nagged: false,
             inspectGate: -1, inspectT: 0, inspected: -1, clue: null, reacted: -1,
             target: null, chosen: -1, resultT: 0, impatient: false, pending: null };
       S.mem.rooms++;
@@ -242,17 +237,6 @@ window.OYUNLAR['02'] = {
       return p;
     }
 
-    // ---- AGENCY: soru sor ----
-    function ask() {
-      if (!r || r.phase !== 'point' || r.pending) return;
-      r.asks++; S.mem.asks++; touch(); ctx.flash(0);
-      if (r.asks > D.asksBeforeAnnoyed) { r.annoyed = true; say(LINES.annoyed); return; }
-      if (!r.lied) { r.pending = { at: simT + 0.35, fn: () => say(LINES.sureTruth) }; return; }
-      // yalan söylüyorsa önce duraksar (ipucu), sonra yine de ısrar eder
-      say('…');
-      r.pending = { at: simT + 0.4 + D.tell * 0.9, fn: () => say(LINES.sureLie) };
-    }
-
     // ---- AGENCY: kapıyı hep oyuncu seçer ----
     function choose(i) {
       r.phase = 'result'; r.chosen = i; r.resultT = simT;
@@ -264,7 +248,6 @@ window.OYUNLAR['02'] = {
       if (obeyed) { S.mem.obeyed++; next = 'confident'; line = correct ? LINES.obeyedTruth : LINES.obeyedLie; }
       else if (r.lied) { S.mem.defied++; S.mem.caught++; next = 'ashamed'; line = LINES.caught; }
       else { S.mem.defied++; next = 'calm'; line = LINES.defiedTruth; }
-      if (r.annoyed && next === 'confident') next = 'calm';
       logRoom(correct);
       S.mood = next;
       if (correct) S.passed++; else S.lights--;
@@ -311,7 +294,7 @@ window.OYUNLAR['02'] = {
       const m = S.mem;
       ctx.overlay({ kick: won ? 'YOU GOT OUT' : 'YOUR LANTERN WENT OUT', title: won ? 'Out of the forest' : 'Lost in the dark',
         text: 'The wolf only ever lied by pointing at its own gate (' + S.want + ' 🐺). It lied ' + m.lies + ' times; you caught ' + m.caught +
-          '. You followed it ' + m.obeyed + ' times and asked “are you sure?” ' + m.asks + ' times. Trust it and it uses you; catch it and it doesn’t dare to lie.',
+          '. You followed it ' + m.obeyed + ' times. Trust it and it uses you; catch it and it doesn’t dare to lie.',
         cta: 'PLAY AGAIN' });
     }
 
@@ -448,7 +431,6 @@ window.OYUNLAR['02'] = {
       pointer(type, e) {
         if (type !== 'down' || !r || r.phase === 'result') return;
         const p = ctx.toLocal(e, Y); if (!p) return;
-        if (p.distanceTo(wolf.position) < 0.3) { ask(); return; }
         const gi = gates.findIndex((g) => p.distanceTo(V(g.x, g.z)) < 0.32);
         if (gi >= 0) { onGate(gi); return; }
         r.target = V(p.x, p.z); touch();
@@ -459,7 +441,6 @@ window.OYUNLAR['02'] = {
         if (dir) { if (down) keys.add(dir); else keys.delete(dir); e.preventDefault(); return true; }
         if (!down) return false;
         if (/^[1-6]$/.test(k) && Number(k) <= gates.length) { onGate(Number(k) - 1); return true; }
-        if (k === 'q') { ask(); return true; }
         return false;
       },
       frame(t, dt) {
@@ -477,12 +458,12 @@ window.OYUNLAR['02'] = {
         if (r.phase === 'result') return (r.chosen === r.truth ? 'Through the gate. ' : 'Wrong gate, your lantern dims. ') + verdict();
         if (r.phase === 'point') {
           if (r.mood === 'ashamed') return 'You caught it last time. It doesn’t dare to lie now.';
-          if (r.pointed !== r.want) return 'It points away from its own gate. Follow, ask, or look for yourself.';
+          if (r.pointed !== r.want) return 'It points away from its own gate, so it is telling the truth.';
           return 'It points at its own gate 🐺. Is that the exit, or what it wants?';
         }
         return 'The wolf walks ahead…';
       },
-      status: () => S ? 'wolf: ' + S.mood + ' (' + MOOD_TR[S.mood] + ') · lied ' + S.mem.lies + ' · caught ' + S.mem.caught + ' · obeyed ' + S.mem.obeyed + ' · asked ' + S.mem.asks : '',
+      status: () => S ? 'wolf: ' + S.mood + ' (' + MOOD_TR[S.mood] + ') · lied ' + S.mem.lies + ' · caught ' + S.mem.caught + ' · obeyed ' + S.mem.obeyed : '',
       // dikey ekranda (telefon) kamera kapılara yaklaşır, üstteki panellerin altında kalmasınlar
       view() { return innerWidth / Math.max(1, innerHeight) < 0.8 ? { at: [0, 0.35, -1.3], zoom: 2.2 } : {}; },
       knob() {}
