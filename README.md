@@ -26,9 +26,10 @@ Get through 5 gates before your lantern goes out (3 wrong gates). The WOLF LOG o
 - Its mood decides how often it lies:
   - **calm** (start, or whenever you did not follow it and did not catch a lie) → `lieCalm` (0.3)
   - **confident** (after you followed it) → `lieConfident` (0.9): trust it and it uses you
-  - **ashamed** (after you caught a lie by walking through the real exit) → `lieAshamed` (0): catch it and it doesn't dare to lie
+  - **ashamed** (after you caught a lie by walking through the real exit) → `lieAshamed` (0): catch it and it doesn't dare to lie. Switch `ashamed` off and it never feels ashamed (harder)
+- If you hesitate for `patience` ms, the wolf walks right up to you: “Come on, lamb.”
 - The first time you follow it, it answers that trust with a lie in the next room it can (`firstTrustLie`).
-- Listening at a gate (stand still in front of it, once per room) reveals “a breeze…” (exit) or “silence.”; a lying wolf steps in front of the real exit. Its body language (`tell`) also leans toward the real exit when it lies.
+- Listening at a gate (stand still in front of it, once per room) reveals “a breeze…” (exit) or “silence.”; a lying wolf steps in front of the real exit (`guardExit`, can be switched off). Its body language (`tell`) also leans toward the real exit when it lies.
 
 ## Where the premises live in the code (`script.js`)
 
