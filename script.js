@@ -48,7 +48,8 @@ const LINES = {
   obeyedTruth: 'See? We make a good team.',
   obeyedLie: 'Hm. The gates must have moved.',
   caught: '…So you noticed.',
-  defiedTruth: 'You didn’t trust me. Your loss.'
+  defiedTruth: 'You didn’t trust me. Your loss.',
+  defiedLieMissed: 'Not my gate, not the way out either.'
 };
 
 // Kurdun kendi kapısının etiketi (emoji yerine oyunun yazı tipiyle)
@@ -67,7 +68,7 @@ window.OYUNLAR['02'] = {
   hud: [['GATES', 'hGate'], ['LIGHT', 'hLight'], ['WOLF', 'hMood', 'ghosts'], ['CAUGHT', 'hCaught']],
   design: {
     wolfGate: 'random', doors: 3, toEscape: 5, lights: 4,
-    lieCalm: 0.5, lieConfident: 0.75, lieAshamed: 0,
+    lieCalm: 0.25, lieConfident: 0.75, lieAshamed: 0,
     tell: 1, inspectTime: 1000, patience: 6000,
     walkSpeed: 1.1, wolfSpeed: 1.8
   },
@@ -99,8 +100,8 @@ window.OYUNLAR['02'] = {
   code: [
     '<span class="c">// 3) RULE: the wolf reads every move as a reply</span>',
     '<span class="k">if</span> (obeyed) mood = <span class="s">\'confident\'</span>; <span class="c">// güvenirsen seni kullanır</span>',
-    '<span class="k">else if</span> (lied) mood = <span class="s">\'ashamed\'</span>; <span class="c">// yalanını yakalarsan yalana cesaret edemez</span>',
-    '<span class="k">else</span> mood = <span class="s">\'calm\'</span>;  <span class="c">// doğruya güvenmezsen sakinleşir</span>',
+    '<span class="k">else if</span> (lied &amp;&amp; correct) mood = <span class="s">\'ashamed\'</span>; <span class="c">// yalanını yakalarsan (doğru kapı) yalana cesaret edemez</span>',
+    '<span class="k">else</span> mood = <span class="s">\'calm\'</span>;  <span class="c">// diğer her durumda sakin</span>',
     'lie = wolfGate != exit &amp;&amp; random() &lt; DESIGN[<span class="s">\'lie\'</span> + mood];'],
   tasks: [
     'Set <b>tell</b> to 0. Can you still read the wolf?',
@@ -249,7 +250,8 @@ window.OYUNLAR['02'] = {
       let next, line;
       // RECIPROCITY: kurt bu hareketi bir cevap olarak okur
       if (obeyed) { S.mem.obeyed++; next = 'confident'; line = correct ? LINES.obeyedTruth : LINES.obeyedLie; }
-      else if (r.lied) { S.mem.defied++; S.mem.caught++; next = 'ashamed'; line = LINES.caught; }
+      else if (r.lied && correct) { S.mem.defied++; S.mem.caught++; next = 'ashamed'; line = LINES.caught; }   // yalanı yakaladın: doğru kapıyı buldun
+      else if (r.lied) { S.mem.defied++; next = 'calm'; line = LINES.defiedLieMissed; }                      // yalanı sezdin ama yanlış kapı
       else { S.mem.defied++; next = 'calm'; line = LINES.defiedTruth; }
       logRoom(correct);
       S.mood = next;

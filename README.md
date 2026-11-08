@@ -23,9 +23,9 @@ Get through 5 gates before your lantern goes out (4 wrong gates). The WOLF LOG o
 
 - The wolf only lies when its own gate (WOLF’S) is **not** the exit, and when it lies it always points at its own gate. If it points at any other gate, it is telling the truth.
 - Its mood decides how often it lies:
-  - **calm** (start, or after you doubted the truth) → `lieCalm`
+  - **calm** (start, or whenever you did not follow it and did not catch a lie) → `lieCalm`
   - **confident** (after you followed it) → `lieConfident`: trust it and it uses you
-  - **ashamed** (after you caught a lie) → `lieAshamed`, 0 by default: catch it and it doesn't dare to lie
+  - **ashamed** (after you caught a lie by walking through the real exit) → `lieAshamed`, 0 by default: catch it and it doesn't dare to lie
 - Listening at a gate (stand still in front of it, once per room) reveals “a breeze…” (exit) or “silence.”; a lying wolf steps in front of the real exit.
 
 ## Where the premises live in the code (`script.js`)
