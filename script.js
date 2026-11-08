@@ -69,7 +69,7 @@ window.OYUNLAR['02'] = {
   design: {
     wolfGate: 'random', hideWolfGate: true, firstTrustLie: true, doors: 3, toEscape: 5, lights: 3,
     lieCalm: 0.3, lieConfident: 0.9, lieAshamed: 0,
-    tell: 0.5, ashamed: true, guardExit: true, inspectTime: 1000, patience: 6000,
+    tell: 0.5, ashamed: true, guardExit: true, inspect: true, inspectTime: 1000, patience: 6000,
     walkSpeed: 1.1, wolfSpeed: 1.8
   },
   knobs: [
@@ -97,6 +97,8 @@ window.OYUNLAR['02'] = {
       tr: 'Açık: yalanını yakalarsan (doğru kapıdan geçersen) utanır ve bir sonraki odada yalan söylemez (lieAshamed). Kapalı: yakalansa da utanmaz, sakin kalır. Oyun zorlaşır.' },
     { key: 'guardExit', type: 'bool', note: 'live',
       tr: 'Açık: yalan söylerken gerçek çıkışı dinlemeye gidersen “Not that one!” deyip o kapının önüne geçer (ipucu). Kapalı: hiç tepki vermez. Oyun zorlaşır.' },
+    { key: 'inspect', type: 'bool', note: 'live',
+      tr: 'Açık: bir kapının önünde durursan dinlersin (“a breeze…” = çıkış, “silence.” = değil). Kapalı: dinleme yok; elinde yalnız kurdun sözü, beden dili ve defter kalır. Oyun zorlaşır.' },
     { key: 'inspectTime', step: 250, min: 250, max: 6000, note: 'ms · live',
       tr: 'Bir kapıyı incelemek için önünde durman gereken süre (milisaniye).' },
     { key: 'patience', step: 500, min: 1000, max: 20000, note: 'ms · live',
@@ -373,7 +375,7 @@ window.OYUNLAR['02'] = {
       const near = gates.find((g) => you.position.distanceTo(g.front) < 0.32);
       if (near && !moving && r.inspected < 0) {
         if (r.inspectGate !== near.i) { r.inspectGate = near.i; r.inspectT = simT; reactToInspect(near.i); }
-        if (simT - r.inspectT > D.inspectTime / 1000) { r.inspected = near.i; r.clue = near.i === r.truth ? 'a breeze…' : 'silence.'; ctx.flash(2); }
+        if (D.inspect && simT - r.inspectT > D.inspectTime / 1000) { r.inspected = near.i; r.clue = near.i === r.truth ? 'a breeze…' : 'silence.'; ctx.flash(2); }
       } else if (!near || moving) { r.inspectGate = -1; }
 
       // kurt
@@ -429,7 +431,7 @@ window.OYUNLAR['02'] = {
         ctx.tag(n++, txt, V(g.x, g.z, Y + 0.85), hot, 0);
       });
       if (r.say && simT - r.sayT < 4.5) ctx.tag(n++, r.say, V(wolf.position.x, wolf.position.z, Y), true, -16, 'speech');   // ayaklarının altında
-      if (r.inspectGate >= 0 && r.inspected < 0 && r.phase !== 'result') {
+      if (D.inspect && r.inspectGate >= 0 && r.inspected < 0 && r.phase !== 'result') {
         const p = Math.min(1, (simT - r.inspectT) / (D.inspectTime / 1000));
         ctx.tag(n++, 'inspecting ' + '▮'.repeat(Math.round(p * 5)) + '▯'.repeat(5 - Math.round(p * 5)), V(you.position.x, you.position.z, Y + 0.7), false, 0);
       }
@@ -478,7 +480,7 @@ window.OYUNLAR['02'] = {
         if (r.phase === 'result') return (r.chosen === r.truth ? 'Through the gate. ' : 'Wrong gate, your lantern dims. ') + verdict();
         if (r.phase === 'point') {
           if (r.mood === 'ashamed') return 'You caught it last time. It doesn’t dare to lie now.';
-          if (!S.revealed) return 'It says it knows the way. Follow it, listen at a gate, or go your own way.';
+          if (!S.revealed) return 'It says it knows the way. Follow it' + (D.inspect ? ', listen at a gate,' : '') + ' or go your own way.';
           if (r.pointed !== r.want) return 'It points away from its own gate, so it is telling the truth.';
           return 'It points at its own gate. Is that the exit, or what it wants?';
         }
