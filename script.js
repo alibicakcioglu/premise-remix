@@ -67,14 +67,18 @@ window.OYUNLAR['02'] = {
   anat: ['walk · listen · choose', 'reply → mood', 'mood · log', 'points · lies'], hot: 2,
   hud: [['GATES', 'hGate'], ['LIGHT', 'hLight'], ['WOLF', 'hMood', 'ghosts'], ['CAUGHT', 'hCaught']],
   design: {
-    wolfGate: 'random', doors: 3, toEscape: 5, lights: 4,
-    lieCalm: 0.25, lieConfident: 0.75, lieAshamed: 0,
-    tell: 1, inspectTime: 1000, patience: 6000,
+    wolfGate: 'random', hideWolfGate: true, firstTrustLie: true, doors: 3, toEscape: 5, lights: 3,
+    lieCalm: 0.3, lieConfident: 0.9, lieAshamed: 0,
+    tell: 0.5, inspectTime: 1000, patience: 6000,
     walkSpeed: 1.1, wolfSpeed: 1.8
   },
   knobs: [
     { key: 'wolfGate', type: 'choice', options: ['random', '☾', '✶', '◆', '▲', '●', '■'], note: 'new game',
       tr: 'Kurdun kendi kapısı (WOLF’S). random = her oyunda yeni simge. Yeni oyunda geçerli (RESTART).' },
+    { key: 'hideWolfGate', type: 'bool', note: 'new game',
+      tr: 'Açık: kurdun kapısı ilk yalanına kadar gizli, yalan ortaya çıkınca WOLF’S damgası belirir. Kapalı: baştan görünür. Yeni oyunda geçerli (RESTART).' },
+    { key: 'firstTrustLie', type: 'bool', note: 'live',
+      tr: 'Açık: onu ilk kez takip ettiğinde, bir sonraki odada (kendi kapısı çıkış değilse) kesin yalan söyler. İlk güvene cevabı.' },
     { key: 'doors', step: 1, min: 2, max: 6, note: 'new game',
       tr: 'Her odadaki kapı sayısı (2–6). Yeni oyunda geçerli (RESTART).' },
     { key: 'toEscape', step: 1, min: 1, max: 9, note: 'live',
@@ -102,12 +106,13 @@ window.OYUNLAR['02'] = {
     '<span class="k">if</span> (obeyed) mood = <span class="s">\'confident\'</span>; <span class="c">// güvenirsen seni kullanır</span>',
     '<span class="k">else if</span> (lied &amp;&amp; correct) mood = <span class="s">\'ashamed\'</span>; <span class="c">// yalanını yakalarsan (doğru kapı) yalana cesaret edemez</span>',
     '<span class="k">else</span> mood = <span class="s">\'calm\'</span>;  <span class="c">// diğer her durumda sakin</span>',
-    'lie = wolfGate != exit &amp;&amp; random() &lt; DESIGN[<span class="s">\'lie\'</span> + mood];'],
+    'lie = wolfGate != exit &amp;&amp; (firstTrust || random() &lt; DESIGN[<span class="s">\'lie\'</span> + mood]);',
+    '<span class="k">if</span> (lie) revealWolfGate(); <span class="c">// ilk yalanda WOLF’S damgası belirir</span>'],
   tasks: [
     'Set <b>tell</b> to 0. Can you still read the wolf?',
     'Set <b>lieAshamed</b> to 1. What happens to the relationship when catching it changes nothing?'],
   question: 'When did a system you trusted steer you toward what it wanted?',
-  overlay: { title: 'The Guide', text: 'Night in the forest. A wolf offers to lead you, a lamb, out. It knows the exit, but it has its own gate (marked WOLF’S) and wants you to open it. When it points there: is that the way out, or just what it wants? Stand at a gate to listen for the exit. Walk through a gate to choose.', cta: 'CLICK TO ENTER' },
+  overlay: { title: 'The Guide', text: 'Night in the forest. A wolf offers to lead you, a lamb, out. It knows the exit, but it also has a gate of its own and wants you to open it. Which one? You will find out when it first lies to you. Stand at a gate to listen for the exit. Walk through a gate to choose.', cta: 'CLICK TO ENTER' },
   view: { at: [0, 0.35, -0.3], zoom: 2.8, pitch: 1.08 },
 
   make(ctx) {
@@ -190,7 +195,7 @@ window.OYUNLAR['02'] = {
     function newGame() {
       // kurdun kendi kapısı bu oyun boyunca sabit ve görünür (WOLF’S), yeni oyunda yeniden seçilir
       const want = SYMBOLS.includes(D.wolfGate) ? D.wolfGate : SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
-      S = { passed: 0, lights: D.lights, mood: 'calm', ended: false, want,
+      S = { passed: 0, lights: D.lights, mood: 'calm', ended: false, want, revealed: !D.hideWolfGate, bait: false, baitUsed: false,
             mem: { obeyed: 0, defied: 0, lies: 0, caught: 0, rooms: 0 }, log: [] };
       renderLog();
       newRoom(true);
@@ -210,7 +215,10 @@ window.OYUNLAR['02'] = {
       const want = gates.findIndex((g) => g.symbol === S.want);
       // KURAL: kurt yalnız kendi kapısı çıkış değilse yalan söyleyebilir; olasılık ruh haline bağlı.
       // Yalan söylerse hep KENDİ kapısını gösterir.
-      const lied = want !== truth && Math.random() < lieChance();
+      // İlk güvene cevap: onu ilk kez takip ettiysen ve hâlâ kendinden eminse, bu kez kesin yalan
+      if (S.bait && (S.mood !== 'confident' || !D.firstTrustLie)) S.bait = false;
+      const lied = want !== truth && (S.bait || Math.random() < lieChance());
+      if (lied && S.bait) { S.bait = false; S.baitUsed = true; }
       r = { phase: 'enter', t0: simT, truth, want, lied, mood: S.mood,
             pointed: lied ? want : truth, pointedFirst: lied ? want : truth,
             say: first ? LINES.intro : '', sayT: simT, lastAct: simT, nagged: false,
@@ -246,10 +254,10 @@ window.OYUNLAR['02'] = {
       r.phase = 'result'; r.chosen = i; r.resultT = simT;
       const correct = i === r.truth;
       const obeyed = i === r.pointed;
-      if (r.lied) S.mem.lies++;
+      if (r.lied) { S.mem.lies++; S.revealed = true; }   // yalan ortaya çıktı: kurdun kapısı artık belli
       let next, line;
       // RECIPROCITY: kurt bu hareketi bir cevap olarak okur
-      if (obeyed) { S.mem.obeyed++; next = 'confident'; line = correct ? LINES.obeyedTruth : LINES.obeyedLie; }
+      if (obeyed) { S.mem.obeyed++; next = 'confident'; if (D.firstTrustLie && !S.baitUsed) S.bait = true; line = correct ? LINES.obeyedTruth : LINES.obeyedLie; }
       else if (r.lied && correct) { S.mem.defied++; S.mem.caught++; next = 'ashamed'; line = LINES.caught; }   // yalanı yakaladın: doğru kapıyı buldun
       else if (r.lied) { S.mem.defied++; next = 'calm'; line = LINES.defiedLieMissed; }                      // yalanı sezdin ama yanlış kapı
       else { S.mem.defied++; next = 'calm'; line = LINES.defiedTruth; }
@@ -262,10 +270,10 @@ window.OYUNLAR['02'] = {
     }
 
     // ---- FEEDBACK: kurdun defteri · her odada hali, ne gösterdiği, çıkış ve senin sonucun ----
-    const symOf = (i) => gates[i].symbol + (gates[i].symbol === S.want ? ' ' + WOLF_MARK : '');
+    const symOf = (i) => gates[i].symbol + (S.revealed && gates[i].symbol === S.want ? ' ' + WOLF_MARK : '');
     function verdict() {
       const ex = gates[r.truth].symbol, p = symOf(r.pointedFirst);
-      if (r.lied) return 'It LIED: it pointed at its own gate ' + p + ', the exit was ' + ex + '.';
+      if (r.lied) return (S.mem.lies === 1 ? 'It LIED. Now you know its gate: ' : 'It LIED: it pointed at its own gate ') + p + ', the exit was ' + ex + '.';
       return 'It told the truth: ' + p + ' was the exit.';
     }
     function logRoom(correct) {
@@ -291,7 +299,7 @@ window.OYUNLAR['02'] = {
       const rows = S.log.map((e) => '<tr class="' + (e.lie ? 'lie' : '') + '"><td>' + e.n + '</td><td>' + e.mood + '</td><td>' + e.said +
         '</td><td>' + e.exit + ' <i>' + e.note + '</i></td><td>' + (e.you ? '✓' : '✗') + '</td></tr>').join('');
       el.innerHTML = '<table>' + head + (rows || '<tr><td colspan="5" class="empty">Each room is written here.</td></tr>') + '</table>' +
-        '<p class="key">' + WOLF_MARK + ' = the wolf’s own gate (' + S.want + ')</p>';
+        '<p class="key">' + (S.revealed ? WOLF_MARK + ' = the wolf’s own gate (' + S.want + ')' : 'The wolf has a gate of its own. Which one?') + '</p>';
     }
 
     function endGame(won) {
@@ -407,7 +415,7 @@ window.OYUNLAR['02'] = {
     function tags() {
       let n = 0;
       gates.forEach((g) => {
-        let txt = (g.i + 1) + ' ' + g.symbol + (g.symbol === S.want ? ' ' + WOLF_MARK : ''), hot = false;
+        let txt = (g.i + 1) + ' ' + g.symbol + (S.revealed && g.symbol === S.want ? ' ' + WOLF_MARK : ''), hot = false;
         if (r.phase === 'result') { if (g.i === r.truth) { txt += ' EXIT'; hot = true; } else if (g.i === r.chosen) txt += ' ✗'; }
         else if (r.phase === 'point' && g.i === r.pointed) { txt += ' ← “this one”'; hot = true; }
         if (r.inspected === g.i && r.phase !== 'result') txt += ' · ' + r.clue;
@@ -463,6 +471,7 @@ window.OYUNLAR['02'] = {
         if (r.phase === 'result') return (r.chosen === r.truth ? 'Through the gate. ' : 'Wrong gate, your lantern dims. ') + verdict();
         if (r.phase === 'point') {
           if (r.mood === 'ashamed') return 'You caught it last time. It doesn’t dare to lie now.';
+          if (!S.revealed) return 'It says it knows the way. Follow it, listen at a gate, or go your own way.';
           if (r.pointed !== r.want) return 'It points away from its own gate, so it is telling the truth.';
           return 'It points at its own gate. Is that the exit, or what it wants?';
         }
