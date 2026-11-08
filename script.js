@@ -69,7 +69,7 @@ window.OYUNLAR['02'] = {
   design: {
     wolfGate: 'random', hideWolfGate: true, firstTrustLie: true, doors: 3, toEscape: 5, lights: 3,
     lieCalm: 0.3, lieConfident: 0.9, lieAshamed: 0,
-    tell: 0.5, ashamed: true, guardExit: true, inspect: true, inspectTime: 1000, patience: 2000,
+    tell: 0.5, ashamed: true, guardExit: true, inspect: true, listens: 1, inspectTime: 1000, patience: 2000,
     walkSpeed: 1.1, wolfSpeed: 1.8
   },
   knobs: [
@@ -99,6 +99,8 @@ window.OYUNLAR['02'] = {
       tr: 'Açık: yalan söylerken gerçek çıkışı dinlemeye gidersen “Not that one!” deyip o kapının önüne geçer (ipucu). Kapalı: hiç tepki vermez. Oyun zorlaşır.' },
     { key: 'inspect', type: 'bool', note: 'live',
       tr: 'Açık: bir kapının önünde durursan dinlersin (“a breeze…” = çıkış, “silence.” = değil). Kapalı: dinleme yok.' },
+    { key: 'listens', step: 1, min: 1, max: 3, note: 'live',
+      tr: 'Dinleme hakkı: bir odada kaç farklı kapıyı dinleyebilirsin (1–3).' },
     { key: 'inspectTime', step: 250, min: 250, max: 6000, note: 'ms · live',
       tr: 'Bir kapıyı incelemek için önünde durman gereken süre (milisaniye).' },
     { key: 'patience', step: 500, min: 1000, max: 20000, note: 'ms · live',
@@ -228,7 +230,7 @@ window.OYUNLAR['02'] = {
       r = { phase: 'enter', t0: simT, truth, want, lied, mood: S.mood,
             pointed: lied ? want : truth, pointedFirst: lied ? want : truth,
             say: first ? LINES.intro : '', sayT: simT, lastAct: simT, nagged: false,
-            inspectGate: -1, inspectT: 0, inspected: -1, clue: null, reacted: -1,
+            inspectGate: -1, inspectT: 0, clues: {}, heard: 0, reacted: -1,
             target: null, chosen: -1, resultT: 0, impatient: false, pending: null };
       S.mem.rooms++;
       you.position.copy(V(0, 0.95)); you.rotation.y = Math.PI;
@@ -373,9 +375,9 @@ window.OYUNLAR['02'] = {
 
       // inceleme: bir kapının önünde dur
       const near = gates.find((g) => you.position.distanceTo(g.front) < 0.32);
-      if (near && !moving && r.inspected < 0) {
+      if (near && !moving && r.heard < D.listens && !(near.i in r.clues)) {   // odada en fazla DESIGN.listens kapı, her kapı bir kez
         if (r.inspectGate !== near.i) { r.inspectGate = near.i; r.inspectT = simT; reactToInspect(near.i); }
-        if (D.inspect && simT - r.inspectT > D.inspectTime / 1000) { r.inspected = near.i; r.clue = near.i === r.truth ? 'a breeze…' : 'silence.'; ctx.flash(2); }
+        if (D.inspect && simT - r.inspectT > D.inspectTime / 1000) { r.clues[near.i] = near.i === r.truth ? 'a breeze…' : 'silence.'; r.heard++; ctx.flash(2); }
       } else if (!near || moving) { r.inspectGate = -1; }
 
       // kurt
@@ -427,11 +429,11 @@ window.OYUNLAR['02'] = {
         let txt = (g.i + 1) + ' ' + g.symbol + (S.revealed && g.symbol === S.want ? ' ' + WOLF_MARK : ''), hot = false;
         if (r.phase === 'result') { if (g.i === r.truth) { txt += ' EXIT'; hot = true; } else if (g.i === r.chosen) txt += ' ✗'; }
         else if (r.phase === 'point' && g.i === r.pointed) { txt += ' ← “this one”'; hot = true; }
-        if (r.inspected === g.i && r.phase !== 'result') txt += ' · ' + r.clue;
+        if ((g.i in r.clues) && r.phase !== 'result') txt += ' · ' + r.clues[g.i];
         ctx.tag(n++, txt, V(g.x, g.z, Y + 0.85), hot, 0);
       });
       if (r.say && simT - r.sayT < 4.5) ctx.tag(n++, r.say, V(wolf.position.x, wolf.position.z, Y), true, -16, 'speech');   // ayaklarının altında
-      if (D.inspect && r.inspectGate >= 0 && r.inspected < 0 && r.phase !== 'result') {
+      if (D.inspect && r.inspectGate >= 0 && r.heard < D.listens && !(r.inspectGate in r.clues) && r.phase !== 'result') {
         const p = Math.min(1, (simT - r.inspectT) / (D.inspectTime / 1000));
         ctx.tag(n++, 'inspecting ' + '▮'.repeat(Math.round(p * 5)) + '▯'.repeat(5 - Math.round(p * 5)), V(you.position.x, you.position.z, Y + 0.7), false, 0);
       }
