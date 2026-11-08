@@ -3,7 +3,7 @@
    Vurgu rengi yalnızca "durum değişti" anlamına gelir. */
 
 :root { --accent: #ff6648; }
-body.night { --bg: #0e0f10; --fg: #e9e6dc; --mute: rgba(233, 230, 220, .55); --shade: #000; }
+body.night { --bg: #1e2945; --fg: #e3e6f2; --mute: rgba(227, 230, 242, .6); --shade: #0c1224; --accent: #b9a2f0; }  /* The Guide: lacivert + lavanta */
 body.day   { --bg: #f2efe6; --fg: #17181a; --mute: rgba(23, 24, 26, .55);  --shade: #17181a; }
 
 * { box-sizing: border-box; }
@@ -513,15 +513,15 @@ body.clean .bottom-dock, body.clean .places-toggle, body.clean .touch-pad, body.
 .code pre { max-height: min(70vh, 640px); overflow: auto; }
 .code .ln:has(.tr) { width: auto; min-width: 0; max-width: 100%; }
 
-/* The Guide: tilkinin defteri */
-.ledger { right: 18px; top: 96px; padding: 8px 12px 6px; min-width: 250px; max-width: 320px; }
+/* The Guide: kurdun defteri (tablo) */
+.ledger { right: 18px; top: 96px; padding: 8px 12px 8px; max-width: 380px; }
 body.ingame .card.ledger { display: block !important; }
 body[data-tab="code"] .card.ledger { display: none !important; }
 .ledger small { display: block; font: 700 9px 'Silkscreen', monospace; color: var(--mute); margin-bottom: 4px; }
-.ledger ol { list-style: none; margin: 0; padding: 0; font: 20px/1.15 'VT323', monospace; }
-.ledger li { display: flex; gap: 8px; align-items: baseline; border-top: 1px dashed var(--mute); padding: 2px 0; }
-.ledger li:first-child { border-top: 0; }
-.ledger li span { color: var(--mute); min-width: 1.2em; }
-.ledger li b { margin-left: auto; font-weight: 400; }
-.ledger li.lie { color: var(--accent); }
-.ledger li.empty { color: var(--mute); font-size: 17px; }
+.ledger table { border-collapse: collapse; font: 19px/1.1 'VT323', monospace; width: 100%; }
+.ledger th { font: 700 8px 'Silkscreen', monospace; color: var(--mute); text-align: left; padding: 0 8px 4px 0; white-space: nowrap; }
+.ledger td { padding: 3px 8px 3px 0; border-top: 1px dashed var(--mute); white-space: nowrap; }
+.ledger td i { font-style: normal; color: var(--mute); }
+.ledger tr.lie td, .ledger tr.lie td i { color: var(--accent); }
+.ledger td.empty { color: var(--mute); font-size: 17px; }
+.ledger .key { margin: 6px 0 0; font: 15px 'VT323', monospace; color: var(--mute); }

@@ -15,7 +15,7 @@ try {
   document.getElementById('gameBack').textContent='↺ RESTART';
   document.getElementById('standaloneMode').onclick=()=>{night=!night;settings.time=night?'night':'day';document.body.classList.toggle('night',night);document.body.classList.toggle('day',!night);document.getElementById('standaloneMode').textContent=night?'DAY':'NIGHT';};
   document.getElementById('loadStatus').hidden=true;
-  function frame(ms){camera();shell.frame(ms/1000);place.anims.forEach(fn=>fn(ms/1000));place.chars.forEach(ch=>parts.animate(ch,ms/1000));look.render(out,scene,cam,new THREE.Color(night?C.ink:C.paper),settings,Math.min(devicePixelRatio||1,1.5),1);requestAnimationFrame(frame);}
+  function frame(ms){camera();shell.frame(ms/1000);place.anims.forEach(fn=>fn(ms/1000));place.chars.forEach(ch=>parts.animate(ch,ms/1000));look.render(out,scene,cam,new THREE.Color(night?'#1b2540':C.paper),settings,Math.min(devicePixelRatio||1,1.5),1);requestAnimationFrame(frame);}
   requestAnimationFrame(frame);
   addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.dataset.tab==='play'){e.preventDefault();shell.stop();shell.start(key);}});
   addEventListener('pagehide',()=>shell.stop());
