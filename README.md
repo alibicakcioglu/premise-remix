@@ -2,7 +2,7 @@
 
 **Premise 01 Agency × Premise 02 Reciprocity** · NMED 3203 premise remix
 
-Night in the forest. A wolf offers to lead you, a lamb, out. It knows which gate is the exit, but it also has a gate of its own (🐺) and wants you to open it. You always choose the gate (Agency). The wolf reads every move you make as a reply and changes how it guides you in the next room (Reciprocity).
+Night in the forest. A wolf offers to lead you, a lamb, out. It knows which gate is the exit, but it also has a gate of its own (marked WOLF’S) and wants you to open it. You always choose the gate (Agency). The wolf reads every move you make as a reply and changes how it guides you in the next room (Reciprocity).
 
 **Live link:** https://alibicakcioglu.github.io/premise-remix/
 
@@ -21,7 +21,7 @@ Get through 5 gates before your lantern goes out (4 wrong gates). The WOLF LOG o
 
 ## The rules
 
-- The wolf only lies when its own gate (🐺) is **not** the exit, and when it lies it always points at its own gate. If it points at any other gate, it is telling the truth.
+- The wolf only lies when its own gate (WOLF’S) is **not** the exit, and when it lies it always points at its own gate. If it points at any other gate, it is telling the truth.
 - Its mood decides how often it lies:
   - **calm** (start, or after you doubted the truth) → `lieCalm`
   - **confident** (after you followed it) → `lieConfident`: trust it and it uses you

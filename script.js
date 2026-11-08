@@ -51,6 +51,9 @@ const LINES = {
   defiedTruth: 'You didn’t trust me. Your loss.'
 };
 
+// Kurdun kendi kapısının etiketi (emoji yerine oyunun yazı tipiyle)
+const WOLF_MARK = 'WOLF’S';
+
 const MOOD_TR = { calm: 'sakin', confident: 'kendinden emin', ashamed: 'utanmış' };
 
 window.OYUNLAR['02'] = {
@@ -70,7 +73,7 @@ window.OYUNLAR['02'] = {
   },
   knobs: [
     { key: 'wolfGate', type: 'choice', options: ['random', '☾', '✶', '◆', '▲', '●', '■'], note: 'new game',
-      tr: 'Kurdun kendi kapısı (🐺). random = her oyunda yeni simge. Yeni oyunda geçerli (RESTART).' },
+      tr: 'Kurdun kendi kapısı (WOLF’S). random = her oyunda yeni simge. Yeni oyunda geçerli (RESTART).' },
     { key: 'doors', step: 1, min: 2, max: 6, note: 'new game',
       tr: 'Her odadaki kapı sayısı (2–6). Yeni oyunda geçerli (RESTART).' },
     { key: 'toEscape', step: 1, min: 1, max: 9, note: 'live',
@@ -103,7 +106,7 @@ window.OYUNLAR['02'] = {
     'Set <b>tell</b> to 0. Can you still read the wolf?',
     'Set <b>lieAshamed</b> to 1. What happens to the relationship when catching it changes nothing?'],
   question: 'When did a system you trusted steer you toward what it wanted?',
-  overlay: { title: 'The Guide', text: 'Night in the forest. A wolf offers to lead you, a lamb, out. It knows the exit, but it has its own gate (🐺) and wants you to open it. When it points there: is that the way out, or just what it wants? Stand at a gate to listen for the exit. Walk through a gate to choose.', cta: 'CLICK TO ENTER' },
+  overlay: { title: 'The Guide', text: 'Night in the forest. A wolf offers to lead you, a lamb, out. It knows the exit, but it has its own gate (marked WOLF’S) and wants you to open it. When it points there: is that the way out, or just what it wants? Stand at a gate to listen for the exit. Walk through a gate to choose.', cta: 'CLICK TO ENTER' },
   view: { at: [0, 0.35, -0.3], zoom: 2.8, pitch: 1.08 },
 
   make(ctx) {
@@ -184,7 +187,7 @@ window.OYUNLAR['02'] = {
     const keys = new Set();
 
     function newGame() {
-      // kurdun kendi kapısı bu oyun boyunca sabit ve görünür (🐺), yeni oyunda yeniden seçilir
+      // kurdun kendi kapısı bu oyun boyunca sabit ve görünür (WOLF’S), yeni oyunda yeniden seçilir
       const want = SYMBOLS.includes(D.wolfGate) ? D.wolfGate : SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
       S = { passed: 0, lights: D.lights, mood: 'calm', ended: false, want,
             mem: { obeyed: 0, defied: 0, lies: 0, caught: 0, rooms: 0 }, log: [] };
@@ -257,7 +260,7 @@ window.OYUNLAR['02'] = {
     }
 
     // ---- FEEDBACK: kurdun defteri · her odada hali, ne gösterdiği, çıkış ve senin sonucun ----
-    const symOf = (i) => gates[i].symbol + (gates[i].symbol === S.want ? '🐺' : '');
+    const symOf = (i) => gates[i].symbol + (gates[i].symbol === S.want ? ' ' + WOLF_MARK : '');
     function verdict() {
       const ex = gates[r.truth].symbol, p = symOf(r.pointedFirst);
       if (r.lied) return 'It LIED: it pointed at its own gate ' + p + ', the exit was ' + ex + '.';
@@ -286,14 +289,14 @@ window.OYUNLAR['02'] = {
       const rows = S.log.map((e) => '<tr class="' + (e.lie ? 'lie' : '') + '"><td>' + e.n + '</td><td>' + e.mood + '</td><td>' + e.said +
         '</td><td>' + e.exit + ' <i>' + e.note + '</i></td><td>' + (e.you ? '✓' : '✗') + '</td></tr>').join('');
       el.innerHTML = '<table>' + head + (rows || '<tr><td colspan="5" class="empty">Each room is written here.</td></tr>') + '</table>' +
-        '<p class="key">🐺 = the wolf’s own gate (' + S.want + ')</p>';
+        '<p class="key">' + WOLF_MARK + ' = the wolf’s own gate (' + S.want + ')</p>';
     }
 
     function endGame(won) {
       S.ended = true;
       const m = S.mem;
       ctx.overlay({ kick: won ? 'YOU GOT OUT' : 'YOUR LANTERN WENT OUT', title: won ? 'Out of the forest' : 'Lost in the dark',
-        text: 'The wolf only ever lied by pointing at its own gate (' + S.want + ' 🐺). It lied ' + m.lies + ' times; you caught ' + m.caught +
+        text: 'The wolf only ever lied by pointing at its own gate (' + S.want + '). It lied ' + m.lies + ' times; you caught ' + m.caught +
           '. You followed it ' + m.obeyed + ' times. Trust it and it uses you; catch it and it doesn’t dare to lie.',
         cta: 'PLAY AGAIN' });
     }
@@ -402,13 +405,13 @@ window.OYUNLAR['02'] = {
     function tags() {
       let n = 0;
       gates.forEach((g) => {
-        let txt = (g.i + 1) + ' ' + g.symbol + (g.symbol === S.want ? ' 🐺' : ''), hot = false;
+        let txt = (g.i + 1) + ' ' + g.symbol + (g.symbol === S.want ? ' ' + WOLF_MARK : ''), hot = false;
         if (r.phase === 'result') { if (g.i === r.truth) { txt += ' EXIT'; hot = true; } else if (g.i === r.chosen) txt += ' ✗'; }
         else if (r.phase === 'point' && g.i === r.pointed) { txt += ' ← “this one”'; hot = true; }
         if (r.inspected === g.i && r.phase !== 'result') txt += ' · ' + r.clue;
         ctx.tag(n++, txt, V(g.x, g.z, Y + 0.85), hot, 0);
       });
-      if (r.say && simT - r.sayT < 4.5) ctx.tag(n++, '🐺 ' + r.say, V(wolf.position.x, wolf.position.z, Y), true, -16, 'speech');   // ayaklarının altında
+      if (r.say && simT - r.sayT < 4.5) ctx.tag(n++, r.say, V(wolf.position.x, wolf.position.z, Y), true, -16, 'speech');   // ayaklarının altında
       if (r.inspectGate >= 0 && r.inspected < 0 && r.phase !== 'result') {
         const p = Math.min(1, (simT - r.inspectT) / (D.inspectTime / 1000));
         ctx.tag(n++, 'inspecting ' + '▮'.repeat(Math.round(p * 5)) + '▯'.repeat(5 - Math.round(p * 5)), V(you.position.x, you.position.z, Y + 0.7), false, 0);
@@ -459,7 +462,7 @@ window.OYUNLAR['02'] = {
         if (r.phase === 'point') {
           if (r.mood === 'ashamed') return 'You caught it last time. It doesn’t dare to lie now.';
           if (r.pointed !== r.want) return 'It points away from its own gate, so it is telling the truth.';
-          return 'It points at its own gate 🐺. Is that the exit, or what it wants?';
+          return 'It points at its own gate. Is that the exit, or what it wants?';
         }
         return 'The wolf walks ahead…';
       },
