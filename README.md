@@ -6,6 +6,8 @@ Night in the forest. A wolf offers to lead you, a lamb, out. It knows which gate
 
 **Live link:** https://alibicakcioglu.github.io/premise-remix/
 
+**Design rationale:** [RATIONALE.md](RATIONALE.md) (two readings: Wardrip-Fruin et al., 2009; Dubberly, Haque & Pangaro, 2009)
+
 ## How to play
 
 | Action | Pointer / touch | Keyboard |
@@ -54,6 +56,6 @@ Get through 5 gates before your lantern goes out (3 wrong gates). The WOLF LOG o
 
 ## AI note
 
-<!-- Edit in your own words. -->
-- Claude (Anthropic) was used to narrow the idea and write `script.js`. ChatGPT was used in an earlier brainstorming stage.
-- One thing I rejected or changed: _[write your own example]_
+- **Tools:** Claude (Anthropic) was used to narrow the idea, write and revise `script.js` (including the generated forest sound), check the project against the assignment guide, and draft `RATIONALE.md` from my own decisions and test notes. ChatGPT was used in an earlier brainstorming stage.
+- **One thing I rejected:** Claude had given the lamb an “are you sure?” question (press `Q` or click the wolf). A lying wolf answered more slowly, and asking too often annoyed it. I removed it and made the game easier, so every room comes down to three choices: follow, listen at a gate, or go another way.
+- **One thing I changed:** in Claude's version the wolf always stepped in front of the real exit when I listened there while it was lying. I made that a switch (`guardExit`) so the hint can be taken away.
