@@ -108,13 +108,13 @@ function createGameShell(THREE, env) {
 
   // ---- arayüz parçaları ----
   function fillDom(spec) {
-    $('gTitle').textContent = spec.title;
+    $('gTitle').textContent = spec.key + ' · ' + spec.title;
     $('gSub').textContent = spec.sub || ('premise ' + spec.key + ' · ' + spec.premise.toLowerCase());
     $('gHud').innerHTML = spec.hud.map(([l, id, cls]) => '<div' + (cls ? ' class="' + cls + '"' : '') + '><small>' + l + '</small><b id="' + id + '">–</b></div>').join('');
     $('gAnat').innerHTML = ['INPUT', 'RULE', 'STATE', 'OUTPUT'].map((k, i) => '<div' + (i === spec.hot ? ' class="hot"' : '') + '><small>' + k + '</small><b' + (i === 1 ? ' id="anatRule"' : '') + '>' + esc(spec.anat[i]) + '</b></div>').join('');
     $('gHint').textContent = spec.hint;
     $('codeName').textContent = 'script.js — ' + spec.title;
-    $('notesName').textContent = 'README.md — ' + spec.title;
+    $('notesName').textContent = 'README.md — ' + spec.key + ' ' + spec.title;
     $('codeName').title = $('codeName').textContent; $('notesName').title = $('notesName').textContent;
     $('codeWin').setAttribute('aria-label', 'Code — ' + spec.title); $('notesWin').setAttribute('aria-label', 'Notes — ' + spec.title);
     const a = spec.anat;
