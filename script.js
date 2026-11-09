@@ -63,13 +63,13 @@ window.OYUNLAR['02'] = {
   promise: 'Participation can be designed. Design the dialogue, not the message.',
   source: 'IMA Lab experiment 02 · Eye Field (engine and character system)',
   caption: 'The wolf says it knows the way out.',
-  hint: 'click = walk · stand still at a gate = listen for the exit · walk through a gate = choose · arrows / WASD = walk · 1–6 = go to gate · C = code',
+  hint: 'click = walk · stand still at a gate = listen for the exit · walk through a gate = choose · arrows / WASD = walk · 1–6 = choose gate · C = code',
   anat: ['walk · listen · choose', 'reply → mood', 'mood · log', 'points · lies'], hot: 2,
   hud: [['GATES', 'hGate'], ['LIGHT', 'hLight'], ['WOLF', 'hMood', 'ghosts'], ['CAUGHT', 'hCaught']],
   design: {
     wolfGate: 'random', hideWolfGate: true, firstTrustLie: true, doors: 3, toEscape: 5, lights: 3,
     lieCalm: 0.3, lieConfident: 0.9, lieAshamed: 0,
-    tell: 0.5, ashamed: true, guardExit: true, inspect: true, listens: 1, inspectTime: 1000, patience: 2000,
+    tell: 0.5, ashamed: true, guardExit: true, inspect: true, listens: 1, inspectTime: 1000, patience: 2000, resultPause: 2400, speechTime: 4500,
     walkSpeed: 1.1, wolfSpeed: 1.8
   },
   knobs: [
@@ -105,6 +105,10 @@ window.OYUNLAR['02'] = {
       tr: 'Bir kapıyı incelemek için önünde durman gereken süre (milisaniye).' },
     { key: 'patience', step: 500, min: 1000, max: 20000, note: 'ms · live',
       tr: 'Kurdun sabırsızlanıp sana yaklaşmadan önce beklediği süre (milisaniye).' },
+    { key: 'resultPause', step: 200, min: 600, max: 8000, note: 'ms · live',
+      tr: 'Bir odanın sonucu (EXIT / ✗) gösterildikten sonra yeni odaya geçmeden önce beklenen süre (milisaniye).' },
+    { key: 'speechTime', step: 500, min: 1000, max: 12000, note: 'ms · live',
+      tr: 'Kurdun konuşma balonunun ekranda kaldığı süre (milisaniye).' },
     { key: 'walkSpeed', step: 0.1, min: 0.3, max: 3, note: 'live',
       tr: 'Kuzunun (senin) yürüme hızın.' },
     { key: 'wolfSpeed', step: 0.1, min: 0.3, max: 4, note: 'live',
@@ -351,7 +355,7 @@ window.OYUNLAR['02'] = {
       if (r.pending && simT >= r.pending.at) { const f = r.pending.fn; r.pending = null; f(); }
 
       if (r.phase === 'result') {
-        if (simT - r.resultT > 2.4) {
+        if (simT - r.resultT > D.resultPause / 1000) {
           if (S.passed >= D.toEscape) return endGame(true);
           if (S.lights <= 0) return endGame(false);
           newRoom(false);
@@ -371,7 +375,10 @@ window.OYUNLAR['02'] = {
       ctx.animChar(lambC, moving ? simT : 0);
 
       // kapıdan geçtin mi?
-      for (const g of gates) if (you.position.distanceTo(V(g.x, g.z)) < 0.2) { choose(g.i); return; }
+      for (const g of gates) if (you.position.distanceTo(V(g.x, g.z)) < 0.2) {
+        if (r.phase === 'point') { choose(g.i); return; }
+        you.position.copy(g.front); r.target = null;   // kurt daha göstermedi: kapı henüz açılmaz
+      }
 
       // inceleme: bir kapının önünde dur
       const near = gates.find((g) => you.position.distanceTo(g.front) < 0.32);
@@ -432,7 +439,7 @@ window.OYUNLAR['02'] = {
         if ((g.i in r.clues) && r.phase !== 'result') txt += ' · ' + r.clues[g.i];
         ctx.tag(n++, txt, V(g.x, g.z, Y + 0.85), hot, 0);
       });
-      if (r.say && simT - r.sayT < 4.5) ctx.tag(n++, r.say, V(wolf.position.x, wolf.position.z, Y), true, -16, 'speech');   // ayaklarının altında
+      if (r.say && simT - r.sayT < D.speechTime / 1000) ctx.tag(n++, r.say, V(wolf.position.x, wolf.position.z, Y), true, -16, 'speech');   // ayaklarının altında
       if (D.inspect && r.inspectGate >= 0 && r.heard < D.listens && !(r.inspectGate in r.clues) && r.phase !== 'result') {
         const p = Math.min(1, (simT - r.inspectT) / (D.inspectTime / 1000));
         ctx.tag(n++, 'inspecting ' + '▮'.repeat(Math.round(p * 5)) + '▯'.repeat(5 - Math.round(p * 5)), V(you.position.x, you.position.z, Y + 0.7), false, 0);

@@ -11,9 +11,8 @@ Night in the forest. A wolf offers to lead you, a lamb, out. It knows which gate
 | Action | Pointer / touch | Keyboard |
 |---|---|---|
 | Walk | click on the ground | arrows / WASD |
-| Go to a gate | click a gate | `1`–`6` |
 | Listen at a gate | stand still in front of it | stand still in front of it |
-| Choose | walk through a gate | walk through a gate |
+| Choose a gate | walk through it, or click it | walk through it, or `1`–`6` |
 | Design parameters (with Turkish notes) | CODE tab | `C` |
 | Day / night | DAY / NIGHT button | – |
 
@@ -27,9 +26,10 @@ Get through 5 gates before your lantern goes out (3 wrong gates). The WOLF LOG o
   - **calm** (start, or whenever you did not follow it and did not catch a lie) → `lieCalm` (0.3)
   - **confident** (after you followed it) → `lieConfident` (0.9): trust it and it uses you
   - **ashamed** (after you caught a lie by walking through the real exit) → `lieAshamed` (0): catch it and it doesn't dare to lie. Switch `ashamed` off and it never feels ashamed (harder)
-- If you hesitate for `patience` ms, the wolf walks right up to you: “Come on, lamb.”
+- A gate only opens after the wolf has pointed; walk into one earlier and you stay in front of it.
+- If you hesitate for `patience` ms (2000), the wolf walks right up to you: “Come on, lamb.”
 - The first time you follow it, it answers that trust with a lie in the next room it can (`firstTrustLie`).
-- Listening at a gate (stand still in front of it, once per room) reveals “a breeze…” (exit) or “silence.”; a lying wolf steps in front of the real exit (`guardExit`, can be switched off). Its body language (`tell`) also leans toward the real exit when it lies.
+- Listening at a gate (stand still in front of it) reveals “a breeze…” (exit) or “silence.”. You can listen at `listens` gates per room (1 by default, up to 3), each gate once; `inspect` switches listening off. A lying wolf steps in front of the real exit (`guardExit`, can be switched off). Its body language (`tell`) also leans toward the real exit when it lies.
 
 ## Where the premises live in the code (`script.js`)
 
@@ -37,7 +37,7 @@ Get through 5 gates before your lantern goes out (3 wrong gates). The WOLF LOG o
 - **Reciprocity:** `choose()` reads the player's move as a reply and sets the wolf's next `mood`. `newRoom()` turns that mood into a lie probability (and answers your first trust with a lie). `reactToInspect()` makes the wolf answer within a room.
 - **Feedback for learning:** `verdict()` and the WOLF LOG (`logRoom()`, `renderLog()`).
 - Body language: `wolfSpot()` and `animateHead()`, scaled by `DESIGN.tell`.
-- All numbers are in `design` / `knobs` at the top of `script.js` and can be changed live in the **CODE** tab. The wolf's lines are in `LINES`.
+- All numbers are in `design` / `knobs` at the top of `script.js` and can be changed live in the **CODE** tab, including timings (`inspectTime`, `patience`, `resultPause`, `speechTime`). The wolf's lines are in `LINES`.
 
 ## Credits
 
