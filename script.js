@@ -57,6 +57,88 @@ const WOLF_MARK = 'WOLF’S';
 
 const MOOD_TR = { calm: 'sakin', confident: 'kendinden emin', ashamed: 'utanmış' };
 
+/* ---- Orman sesi: dosya yok, Web Audio ile üretilir. Gece: cırcır böcekleri + arada baykuş; gündüz: kuşlar; ikisinde de rüzgâr ---- */
+function makeGuideAmbience(ac, out) {
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const master = ac.createGain(), dayBus = ac.createGain(), nightBus = ac.createGain();
+  master.gain.value = 0; dayBus.gain.value = 0; nightBus.gain.value = 0;
+  master.connect(out); dayBus.connect(master); nightBus.connect(master);
+
+  // rüzgâr: döngülü kahverengi gürültü (ek yeri yumuşatılmış) → alçak geçiren süzgeç → yavaşça dalgalanan ses
+  const sr = ac.sampleRate, len = Math.floor(sr * 4), fade = Math.floor(sr * 0.25), raw = new Float32Array(len + fade);
+  let last = 0, peak = 0;
+  for (let i = 0; i < raw.length; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; raw[i] = last; peak = Math.max(peak, Math.abs(last)); }
+  const buf = ac.createBuffer(1, len, sr), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (i < fade ? raw[i] * (i / fade) + raw[len + i] * (1 - i / fade) : raw[i]) * (0.5 / peak);
+  const src = ac.createBufferSource(), lp = ac.createBiquadFilter(), wind = ac.createGain(), lfo = ac.createOscillator(), lfoAmt = ac.createGain();
+  src.buffer = buf; src.loop = true; lp.type = 'lowpass'; lp.frequency.value = 450;
+  wind.gain.value = 0.22; lfo.frequency.value = 0.07; lfoAmt.gain.value = 0.1;
+  lfo.connect(lfoAmt); lfoAmt.connect(wind.gain); src.connect(lp); lp.connect(wind); wind.connect(master);
+  src.start(); lfo.start();
+
+  const voice = (bus, p) => {
+    const g = ac.createGain(); g.gain.value = 0;
+    if (ac.createStereoPanner) { const pn = ac.createStereoPanner(); pn.pan.value = p; g.connect(pn); pn.connect(bus); } else g.connect(bus);
+    return g;
+  };
+  function cricket(t, f, p) {   // 3–4 hızlı titreşim
+    const o = ac.createOscillator(), g = voice(nightBus, p); o.frequency.value = f;
+    let k = t; const n = Math.random() < 0.5 ? 3 : 4;
+    for (let i = 0; i < n; i++) { g.gain.setValueAtTime(0, k); g.gain.linearRampToValueAtTime(0.05, k + 0.008); g.gain.linearRampToValueAtTime(0, k + 0.026); k += 0.034; }
+    o.connect(g); o.start(t); o.stop(k + 0.05);
+  }
+  function owl(t) {   // “hu… huu”
+    [[0, 0.32, 0.13], [0.5, 0.55, 0.11]].forEach(([dt, dur, a]) => {
+      const s = t + dt, o = ac.createOscillator(), g = voice(nightBus, -0.35);
+      o.frequency.setValueAtTime(400, s); o.frequency.linearRampToValueAtTime(355, s + dur);
+      g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(a, s + 0.07); g.gain.setTargetAtTime(0, s + dur * 0.6, dur * 0.25);
+      o.connect(g); o.start(s); o.stop(s + dur + 0.8);
+    });
+  }
+  function bird(t) {   // 1–4 notalı cıvıltı; üç farklı tür
+    const kind = Math.floor(Math.random() * 3), p = rnd(-0.8, 0.8), base = rnd(2200, 3600);
+    const n = kind === 1 ? 2 : 1 + Math.floor(Math.random() * 4);
+    let s = t;
+    for (let i = 0; i < n; i++) {
+      const o = ac.createOscillator(), g = voice(dayBus, p), dur = kind === 1 ? 0.18 : rnd(0.06, 0.12);
+      const f0 = kind === 1 ? (i === 0 ? base * 1.15 : base * 0.8) : base * rnd(0.9, 1.1);
+      const f1 = kind === 0 ? f0 * 1.5 : kind === 1 ? f0 * 0.92 : f0 * 0.7;
+      o.frequency.setValueAtTime(f0, s); o.frequency.exponentialRampToValueAtTime(f1, s + dur);
+      g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(0.065, s + 0.012); g.gain.linearRampToValueAtTime(0, s + dur);
+      o.connect(g); o.start(s); o.stop(s + dur + 0.02);
+      s += dur + (kind === 1 ? 0.06 : rnd(0.03, 0.08));
+    }
+  }
+
+  const crickets = [{ f: 4400, p: -0.6, per: 0.75, next: -9 }, { f: 4700, p: 0.5, per: 0.95, next: -9 }, { f: 4100, p: 0.1, per: 1.3, next: -9 }];
+  let nextOwl = -9, nextBird = -9, mode = null, vol = -1;
+  return {
+    ac,
+    // her karede çağrılır: önümüzdeki 0.3 saniyenin seslerini planlar
+    tick(now, night, volume) {
+      if (volume !== vol) { vol = volume; master.gain.setTargetAtTime(volume, now, 0.4); }
+      if (night !== mode) {
+        mode = night;
+        nightBus.gain.setTargetAtTime(night ? 1 : 0, now, 0.8); dayBus.gain.setTargetAtTime(night ? 0 : 1, now, 0.8);
+        lp.frequency.setTargetAtTime(night ? 450 : 1100, now, 0.8);
+      }
+      const ahead = now + 0.3;
+      if (night) {
+        for (const c of crickets) {
+          if (c.next < now - 1) c.next = now + rnd(0, c.per);
+          while (c.next < ahead) { if (Math.random() > 0.15) cricket(c.next, c.f * rnd(0.98, 1.02), c.p); c.next += c.per * rnd(0.85, 1.2); }
+        }
+        if (nextOwl < now - 1) nextOwl = now + rnd(4, 10);
+        if (nextOwl < ahead) { owl(nextOwl); nextOwl += rnd(14, 30); }
+      } else {
+        if (nextBird < now - 1) nextBird = now + rnd(0.2, 1);
+        while (nextBird < ahead) { bird(nextBird); nextBird += rnd(0.5, 2.6); }
+      }
+    },
+    mute(now) { vol = 0; master.gain.setTargetAtTime(0, now, 0.2); }
+  };
+}
+
 window.OYUNLAR['02'] = {
   key: '02', title: 'The Guide', premise: 'Agency × Reciprocity', sub: 'premise 01 × 02 · agency × reciprocity',
   premiseText: 'Your actions change the system, and every action expects a response.',
@@ -69,7 +151,7 @@ window.OYUNLAR['02'] = {
   design: {
     wolfGate: 'random', hideWolfGate: true, firstTrustLie: true, doors: 3, toEscape: 5, lights: 3,
     lieCalm: 0.3, lieConfident: 0.9, lieAshamed: 0,
-    tell: 0.5, ashamed: true, guardExit: true, inspect: true, listens: 1, inspectTime: 1000, patience: 2000, resultPause: 2400, speechTime: 4500,
+    tell: 0.5, ashamed: true, guardExit: true, inspect: true, listens: 1, inspectTime: 1000, patience: 2000, resultPause: 2400, speechTime: 4500, ambience: true, ambVolume: 0.6,
     walkSpeed: 1.1, wolfSpeed: 1.8
   },
   knobs: [
@@ -109,6 +191,10 @@ window.OYUNLAR['02'] = {
       tr: 'Bir odanın sonucu (EXIT / ✗) gösterildikten sonra yeni odaya geçmeden önce beklenen süre (milisaniye).' },
     { key: 'speechTime', step: 500, min: 1000, max: 12000, note: 'ms · live',
       tr: 'Kurdun konuşma balonunun ekranda kaldığı süre (milisaniye).' },
+    { key: 'ambience', type: 'bool', note: 'live',
+      tr: 'Açık: arkada orman sesi çalar. Gece cırcır böcekleri ve arada bir baykuş, gündüz kuşlar; ikisinde de rüzgâr. GÜNDÜZ/GECE düğmesine göre değişir. Kapalı: ses yok.' },
+    { key: 'ambVolume', step: 0.1, min: 0, max: 1, note: 'live',
+      tr: 'Orman sesinin seviyesi (0 = sessiz, 1 = en yüksek).' },
     { key: 'walkSpeed', step: 0.1, min: 0.3, max: 3, note: 'live',
       tr: 'Kuzunun (senin) yürüme hızın.' },
     { key: 'wolfSpeed', step: 0.1, min: 0.3, max: 4, note: 'live',
@@ -449,6 +535,15 @@ window.OYUNLAR['02'] = {
 
     function onGate(i) { if (r.phase !== 'result') { r.target = gates[i].front.clone().lerp(V(gates[i].x, gates[i].z), 1.2); touch(); } }
 
+    // orman sesi: oyun bir kez başladıktan sonra açılır (tarayıcılar ilk tıklamadan önce sese izin vermez).
+    // Bir hata olursa ses kendini kapatır, oyun etkilenmez.
+    let amb = null;
+    function ambience() {
+      if (amb === false || (!amb && (!D.ambience || !ctx.isPlaying()))) return;
+      if (!amb) { const ac = ctx.audio(); if (!ac) return; amb = makeGuideAmbience(ac, ac.destination); }
+      if (amb.ac.state === 'running') amb.tick(amb.ac.currentTime, ctx.night(), D.ambience ? D.ambVolume : 0);
+    }
+
     let nightSet = false;
     return {
       start() {
@@ -457,7 +552,7 @@ window.OYUNLAR['02'] = {
         // oyun gece açılır (fener = can); GÜNDÜZ düğmesiyle değiştirilebilir
         if (!nightSet) { nightSet = true; setTimeout(() => { if (!document.body.classList.contains('night')) document.getElementById('standaloneMode')?.click(); }, 0); }
       },
-      stop() { light.intensity = 0; keys.clear(); },
+      stop() { light.intensity = 0; keys.clear(); if (amb) { try { amb.mute(amb.ac.currentTime); } catch (e) { amb = false; } } },
       begin() { if (S.ended) newGame(); },
       pointer(type, e) {
         if (type !== 'down' || !r || r.phase === 'result') return;
@@ -479,6 +574,7 @@ window.OYUNLAR['02'] = {
         if (placeN++ % 30 === 0) placeLedger();
         if (ctx.isPlaying() && !S.ended) { simT += dt; update(t, dt); }
         light.intensity = ctx.night() ? 1 + 3 * (S.lights / D.lights) : 0;   // fener canla birlikte söner
+        try { ambience(); } catch (e) { amb = false; }
         you.visible = true;
         tags();
       },

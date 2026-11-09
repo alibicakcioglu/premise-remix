@@ -16,6 +16,8 @@ Night in the forest. A wolf offers to lead you, a lamb, out. It knows which gate
 | Design parameters (with Turkish notes) | CODE tab | `C` |
 | Day / night | DAY / NIGHT button | – |
 
+A soft forest ambience plays in the background once you start: crickets and an occasional owl at night, birds by day, wind in both. It is generated live with the Web Audio API (no sound files). Switch it off or change its volume with `ambience` / `ambVolume` in the CODE tab.
+
 Get through 5 gates before your lantern goes out (3 wrong gates). The WOLF LOG on the right records every room: the wolf's mood, what it said, the real exit, and whether you were right.
 
 ## The rules
