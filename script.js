@@ -120,7 +120,7 @@ window.OYUNLAR['02'] = {
     'Set <b>tell</b> to 0. Can you still read the wolf?',
     'Set <b>lieAshamed</b> to 1. What happens to the relationship when catching it changes nothing?'],
   question: 'When did a system you trusted steer you toward what it wanted?',
-  overlay: { title: 'The Guide', text: 'Night in the forest. A wolf offers to lead you, a lamb, out. It knows the exit, but it also has a gate of its own and wants you to open it. Which one? You will find out when it first lies to you. Stand at a gate to listen for the exit. Walk through a gate to choose.', cta: 'CLICK TO ENTER' },
+  overlay: { title: 'The Guide', text: 'Night in the forest. A wolf offers to lead you, a lamb, out. Get through the gates before your lantern goes out; every wrong gate dims it. In every room the wolf points at a gate. It knows the exit, but it also wants you through its own gate. What you do changes its mood, and its mood changes how it guides you. Stand in front of a gate to listen. Walk through it to choose.', cta: 'CLICK TO ENTER' },
   view: { at: [0, 0.35, -0.3], zoom: 2.8, pitch: 1.08 },
 
   make(ctx) {
